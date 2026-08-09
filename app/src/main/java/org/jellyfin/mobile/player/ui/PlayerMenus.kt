@@ -31,6 +31,7 @@ import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  *  Provides a menu UI for audio, subtitle and video stream selection
@@ -56,6 +57,7 @@ class PlayerMenus(
     private val qualityButton: View by playerControlsBinding::qualityButton
     private val decoderButton: View by playerControlsBinding::decoderButton
     private val infoButton: View by playerControlsBinding::infoButton
+    private val localBadge: View by playerControlsBinding::localBadge
     private val playbackInfo: TextView by playerBinding::playbackInfo
     private val audioStreamsMenu: PopupMenu = createAudioStreamsMenu()
     private val subtitlesMenu: PopupMenu = createSubtitlesMenu()
@@ -132,15 +134,15 @@ class PlayerMenus(
             }
         }
         speedButton.setOnClickListener {
-            fragment.suppressControllerAutoHide(true)
+            fragment.suppressControllerAutoHide(suppress = true)
             speedMenu.show()
         }
         qualityButton.setOnClickListener {
-            fragment.suppressControllerAutoHide(true)
+            fragment.suppressControllerAutoHide(suppress = true)
             qualityMenu.show()
         }
         decoderButton.setOnClickListener {
-            fragment.suppressControllerAutoHide(true)
+            fragment.suppressControllerAutoHide(suppress = true)
             decoderMenu.show()
         }
         infoButton.setOnClickListener {
@@ -191,9 +193,15 @@ class PlayerMenus(
         val height = videoStream?.height
         val width = videoStream?.width
         when (mediaSource) {
-            is LocalJellyfinMediaSource -> qualityButton.isVisible = false
-            is RemoteJellyfinMediaSource -> if (height != null && width != null) {
-                buildQualityMenu(qualityMenu.menu, mediaSource.maxStreamingBitrate, width, height)
+            is LocalJellyfinMediaSource -> {
+                qualityButton.isVisible = false
+                localBadge.isVisible = true
+            }
+            is RemoteJellyfinMediaSource -> {
+                localBadge.isVisible = false
+                if ((height != null) && (width != null)) {
+                    buildQualityMenu(qualityMenu.menu, mediaSource.maxStreamingBitrate, width, height)
+                }
             }
         }
 
@@ -202,18 +210,16 @@ class PlayerMenus(
             mediaStreams = listOfNotNull(videoStream),
             prefix = R.string.playback_info_video_streams,
             maxStreams = MAX_VIDEO_STREAMS_DISPLAY,
-            streamSuffix = { stream ->
-                stream.bitRate?.let { bitrate -> " (${formatBitrate(bitrate.toDouble())})" }.orEmpty()
-            },
-        )
+        ) { stream ->
+            stream.bitRate?.let { bitrate -> " (${formatBitrate(bitrate.toDouble())})" }.orEmpty()
+        }
         val audioTracksInfo = buildMediaStreamsInfo(
             mediaStreams = audioStreams,
             prefix = R.string.playback_info_audio_streams,
             maxStreams = MAX_AUDIO_STREAMS_DISPLAY,
-            streamSuffix = { stream ->
-                stream.language?.let { lang -> " ($lang)" }.orEmpty()
-            },
-        )
+        ) { stream ->
+            stream.language?.let { lang -> " ($lang)" }.orEmpty()
+        }
 
         playbackInfo.text = listOf(
             playMethod,
@@ -302,17 +308,31 @@ class PlayerMenus(
     }
 
     private fun createSpeedMenu() = PopupMenu(context, speedButton).apply {
+        menu.clear()
         for (step in SPEED_MENU_STEP_MIN..SPEED_MENU_STEP_MAX) {
             val newSpeed = step * SPEED_MENU_STEP_SIZE
-            menu.add(SPEED_MENU_GROUP, step, Menu.NONE, "${newSpeed}x").isChecked = newSpeed == 1f
+            menu.add(SPEED_MENU_GROUP, step, Menu.NONE, "${newSpeed}x")
         }
         menu.setGroupCheckable(SPEED_MENU_GROUP, true, true)
         setOnMenuItemClickListener { clickedItem: MenuItem ->
             fragment.onSpeedSelected(clickedItem.itemId * SPEED_MENU_STEP_SIZE).also { success ->
                 if (success) clickedItem.isChecked = true
             }
+            true
         }
         setOnDismissListener(this@PlayerMenus)
+    }
+
+    fun updateSpeed(speed: Float) {
+        val formattedSpeed = String.format(Locale.US, "%.1f", speed).removeSuffix(".0")
+        (speedButton as? TextView)?.text = context.getString(R.string.player_speed_indicator_simple, formattedSpeed)
+        // Update menu selection
+        val step = (speed / SPEED_MENU_STEP_SIZE).toInt()
+        val exactMatch = abs((step * SPEED_MENU_STEP_SIZE) - speed) < 0.01f
+        for (i in 0 until speedMenu.menu.size) {
+            val item = speedMenu.menu[i]
+            item.isChecked = exactMatch && item.itemId == step
+        }
     }
 
     private fun createQualityMenu() = PopupMenu(context, qualityButton).apply {
@@ -342,7 +362,7 @@ class PlayerMenus(
         menu.setGroupCheckable(DECODER_MENU_GROUP, true, true)
 
         setOnMenuItemClickListener { clickedItem: MenuItem ->
-            val type = DecoderType.values()[clickedItem.itemId]
+            val type = DecoderType.entries[clickedItem.itemId]
             fragment.onDecoderSelected(type)
             clickedItem.isChecked = true
             true
@@ -438,6 +458,6 @@ class PlayerMenus(
 
         private const val SPEED_MENU_STEP_SIZE = 0.25f
         private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
-        private const val SPEED_MENU_STEP_MAX = 8 // → 2x
+        private const val SPEED_MENU_STEP_MAX = 12 // → 3x
     }
 }
