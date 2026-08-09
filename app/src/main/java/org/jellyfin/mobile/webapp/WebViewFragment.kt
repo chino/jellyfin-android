@@ -182,6 +182,7 @@ class WebViewFragment : Fragment(), BackPressInterceptor, JellyfinWebChromeClien
             showOutdatedWebViewDialog(this)
             return
         }
+        WebView.setWebContentsDebuggingEnabled(true)
         webViewClient = jellyfinWebViewClient
         webChromeClient = JellyfinWebChromeClient(this@WebViewFragment)
         settings.applyDefault()
