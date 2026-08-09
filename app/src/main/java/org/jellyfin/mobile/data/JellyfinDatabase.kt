@@ -9,6 +9,7 @@ import androidx.room.RoomDatabase
 import androidx.room.TypeConverter
 import androidx.room.TypeConverters
 import androidx.room.migration.AutoMigrationSpec
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.serialization.json.Json
 import org.jellyfin.mobile.data.dao.DownloadDao
@@ -30,7 +31,7 @@ import java.util.UUID
         DownloadEntity::class,
         DownloadFileEntity::class,
     ],
-    version = 5,
+    version = 6,
     autoMigrations = [
         AutoMigration(from = 2, to = 3),
         AutoMigration(from = 3, to = 4, spec = JellyfinDatabase.MigrateV4::class),
@@ -91,4 +92,13 @@ abstract class JellyfinDatabase : RoomDatabase() {
 
     @DeleteTable(tableName = "Download")
     class MigrateV5 : AutoMigrationSpec
+
+    companion object {
+        val MIGRATION_5_6 = object : Migration(5, 6) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `download` ADD COLUMN `playback_position_ticks` INTEGER")
+                db.execSQL("ALTER TABLE `download` ADD COLUMN `last_played_at` INTEGER")
+            }
+        }
+    }
 }

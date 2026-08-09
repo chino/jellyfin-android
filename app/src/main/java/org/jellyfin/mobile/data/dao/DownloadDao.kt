@@ -40,6 +40,9 @@ interface DownloadDao {
     @Update(onConflict = OnConflictStrategy.REPLACE)
     suspend fun update(entity: DownloadEntity): Int
 
+    @Query("UPDATE download SET playback_position_ticks = :ticks, last_played_at = :lastPlayedAt WHERE item_id = :itemId")
+    suspend fun updatePlaybackPosition(itemId: UUID, ticks: Long, lastPlayedAt: Long)
+
     @Query("DELETE FROM download WHERE id = :id")
     suspend fun delete(id: Long)
 
