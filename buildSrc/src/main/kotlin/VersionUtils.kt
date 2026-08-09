@@ -10,10 +10,19 @@ import org.gradle.api.Project
  * v2.0.0 -> 2.0.0
  * null -> 0.0.0-dev.1 (unless different fallback set)
  */
-fun Project.getVersionName(fallback: String = "0.0.0-dev.1") =
-    getProperty("jellyfin.version")
-        ?.removePrefix("v")
-        ?: fallback
+fun Project.getVersionName(fallback: String = "0.0.0-dev.1"): String {
+    val version = (findProperty("jellyfin.version") as? String)?.removePrefix("v")
+    if (version != null) return version
+
+    return try {
+        val process = ProcessBuilder("git", "describe", "--tags", "--always", "--dirty")
+            .start()
+        val gitVersion = process.inputStream.bufferedReader().readText().trim().removePrefix("v")
+        if (gitVersion.isEmpty()) fallback else gitVersion
+    } catch (_: Exception) {
+        fallback
+    }
+}
 
 /**
  * Get the version code for a given semantic version.
