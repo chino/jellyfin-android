@@ -7,6 +7,7 @@ import org.koin.dsl.module
 val databaseModule = module {
     single {
         Room.databaseBuilder(androidApplication(), JellyfinDatabase::class.java, "jellyfin")
+            .addMigrations(JellyfinDatabase.MIGRATION_5_6)
             .fallbackToDestructiveMigrationFrom(true, 1)
             .fallbackToDestructiveMigrationOnDowngrade(true)
             .build()

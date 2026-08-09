@@ -6,6 +6,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.content.getSystemService
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -30,6 +31,8 @@ import androidx.media3.exoplayer.util.EventLogger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -38,14 +41,15 @@ import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.app.PLAYER_EVENT_CHANNEL
+import org.jellyfin.mobile.data.dao.DownloadDao
 import org.jellyfin.mobile.player.interaction.PlayerEvent
 import org.jellyfin.mobile.player.interaction.PlayerLifecycleObserver
 import org.jellyfin.mobile.player.interaction.PlayerMediaSessionCallback
 import org.jellyfin.mobile.player.interaction.PlayerNotificationHelper
-import org.jellyfin.mobile.player.mediasegments.MediaSegmentAction
 import org.jellyfin.mobile.player.mediasegments.MediaSegmentRepository
 import org.jellyfin.mobile.player.queue.QueueManager
 import org.jellyfin.mobile.player.source.JellyfinMediaSource
+import org.jellyfin.mobile.player.source.LocalJellyfinMediaSource
 import org.jellyfin.mobile.player.source.RemoteJellyfinMediaSource
 import org.jellyfin.mobile.player.ui.DecoderType
 import org.jellyfin.mobile.player.ui.DisplayPreferences
@@ -55,9 +59,6 @@ import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.Constants.SUPPORTED_VIDEO_PLAYER_PLAYBACK_ACTIONS
 import org.jellyfin.mobile.utils.applyDefaultAudioAttributes
 import org.jellyfin.mobile.utils.applyDefaultLocalAudioAttributes
-import org.jellyfin.mobile.utils.extensions.end
-import org.jellyfin.mobile.utils.extensions.scaleInRange
-import org.jellyfin.mobile.utils.extensions.start
 import org.jellyfin.mobile.utils.extensions.width
 import org.jellyfin.mobile.utils.getVolumeLevelPercent
 import org.jellyfin.mobile.utils.getVolumeRange
@@ -90,17 +91,20 @@ import org.koin.core.component.get
 import org.koin.core.component.inject
 import org.koin.core.qualifier.named
 import timber.log.Timber
+import java.util.UUID
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-@Suppress("TooManyFunctions")
-class PlayerViewModel(application: Application) : AndroidViewModel(application), KoinComponent, Player.Listener {
+class PlayerViewModel(application: Application) : AndroidViewModel(application),
+    Player.Listener,
+    KoinComponent {
     private val apiClient: ApiClient = get()
     private val displayPreferencesApi: DisplayPreferencesApi = apiClient.displayPreferencesApi
     private val playStateApi: PlayStateApi = apiClient.playStateApi
     private val hlsSegmentApi: HlsSegmentApi = apiClient.hlsSegmentApi
     private val userApi: UserApi = apiClient.userApi
+    private val downloadDao: DownloadDao by inject()
 
     private val appPreferences: AppPreferences by inject()
     private val lifecycleObserver = PlayerLifecycleObserver(this)
@@ -119,9 +123,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private val _player = MutableLiveData<ExoPlayer?>()
     private val _playerState = MutableLiveData<Int>()
     private val _decoderType = MutableLiveData<DecoderType>()
+    private val _playbackSpeed = MutableLiveData<Float>()
     val player: LiveData<ExoPlayer?> get() = _player
     val playerState: LiveData<Int> get() = _playerState
     val decoderType: LiveData<DecoderType> get() = _decoderType
+    val playbackSpeed: LiveData<Float> get() = _playbackSpeed
 
     // Player Menus
     private var playerMenuHelper: PlayerMenuHelper? = null
@@ -198,24 +204,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 val userConfig = withContext(Dispatchers.IO) {
                     userApi.getCurrentUser().content.configuration
                 }
+
                 autoPlayNextEpisodeEnabled = userConfig?.enableNextEpisodeAutoPlay ?: false
             } catch (e: ApiClientException) {
-                Timber.e(e, "Failed to load auto play preference")
+                Timber.e(e, "Failed to load user configuration from API")
             }
         }
 
-        // Subscribe to player events from webapp
+        // Process events from bridge
         viewModelScope.launch {
             for (event in playerEventChannel) {
                 when (event) {
                     PlayerEvent.Pause -> mediaSessionCallback.onPause()
                     PlayerEvent.Resume -> mediaSessionCallback.onPlay()
-                    PlayerEvent.Stop, PlayerEvent.Destroy -> mediaSessionCallback.onStop()
+                    PlayerEvent.Stop -> stop()
+                    PlayerEvent.Destroy -> releasePlayer()
                     is PlayerEvent.Seek -> playerOrNull?.seekTo(event.duration.inWholeMilliseconds)
-                    is PlayerEvent.SetVolume -> {
-                        setVolume(event.volume)
-                        playerOrNull?.reportPlaybackState()
-                    }
+                    is PlayerEvent.SetVolume -> setVolume(event.volume)
                 }
             }
         }
@@ -281,6 +286,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }.build().apply {
             addListener(this@PlayerViewModel)
             applyDefaultAudioAttributes(C.AUDIO_CONTENT_TYPE_MOVIE)
+            playbackParameters = androidx.media3.common.PlaybackParameters(playSpeed)
+            _playbackSpeed.postValue(playSpeed)
         }
     }
 
@@ -362,28 +369,32 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         skipMediaSegmentUpdateJob?.cancel()
     }
 
-    /**
-     * Updates the decoder of the [Player]. This will destroy the current player and
-     * recreate the player with the selected decoder type
-     */
     fun updateDecoderType(type: DecoderType) {
-        _decoderType.postValue(type)
-        analyticsCollector.release()
-        val playedTime = (playerOrNull?.currentPosition ?: 0L).milliseconds
-        // Stop and release the player without ending playback
-        playerOrNull?.run {
-            removeListener(this@PlayerViewModel)
-            release()
-        }
-        analyticsCollector = buildAnalyticsCollector()
+        val player = playerOrNull ?: return
+        val currentPosition = player.currentPosition.milliseconds
+        val currentMediaSource = mediaSourceOrNull ?: return
+        val currentPlayWhenReady = player.playWhenReady
+
+        _decoderType.value = type
+
+        // Re-setup player
+        player.removeListener(this)
+        player.release()
         setupPlayer()
-        queueManager.getCurrentMediaSourceOrNull()?.startTime = playedTime
-        queueManager.tryRestartPlayback()
+
+        // Reload current item
+        currentMediaSource.startTime = currentPosition
+        val exoMediaSource = when (currentMediaSource) {
+            is LocalJellyfinMediaSource -> queueManager.prepareStreams(currentMediaSource)
+            is RemoteJellyfinMediaSource -> queueManager.prepareStreams(currentMediaSource)
+            else -> throw IllegalArgumentException("Unsupported MediaSource type")
+        }
+        load(currentMediaSource, exoMediaSource, currentPlayWhenReady)
     }
 
     private suspend fun Player.reportPlaybackStart(mediaSource: RemoteJellyfinMediaSource) {
         try {
-            val isPaused = !isPlaying
+            val playbackPosition = currentPosition.milliseconds
             withContext(Dispatchers.IO) {
                 playStateApi.reportPlaybackStart(
                     PlaybackStartInfo(
@@ -393,13 +404,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                         liveStreamId = mediaSource.liveStreamId,
                         audioStreamIndex = mediaSource.selectedAudioStream?.index,
                         subtitleStreamIndex = mediaSource.selectedSubtitleStream?.index,
-                        isPaused = isPaused,
+                        isPaused = !isPlaying,
                         isMuted = false,
                         canSeek = true,
-                        positionTicks = mediaSource.startTime.inWholeTicks,
+                        positionTicks = playbackPosition.inWholeTicks,
                         volumeLevel = audioManager.getVolumeLevelPercent(),
-                        repeatMode = RepeatMode.REPEAT_NONE,
                         playbackOrder = PlaybackOrder.DEFAULT,
+                        repeatMode = RepeatMode.REPEAT_NONE,
                     ),
                 )
             }
@@ -409,66 +420,84 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     private fun Player.setWatchedChapterMarkings() {
+        val mediaSource = mediaSourceOrNull ?: return
+        val markings = playerMenuHelper?.chapterMarkings?.markings ?: return
         val playbackPosition = currentPosition.milliseconds
-        val chapters = mediaSourceOrNull?.item?.chapters ?: return
-        val startPositions = chapters.map { c -> c.startPositionTicks.ticks }
-        val chapterMarkings = playerMenuHelper?.chapterMarkings?.markings ?: emptyList()
 
-        startPositions.zip(chapterMarkings).forEach { (pos, marking) ->
-            val color = if (playbackPosition >= pos) R.color.jellyfin_accent else R.color.playback_timebar_unplayed
-            marking.setColor(color)
+        for (marking in markings) {
+            val bias = (marking.view.layoutParams as? ConstraintLayout.LayoutParams)?.horizontalBias ?: 0f
+            val chapterPositionTicks = (mediaSource.runTime.inWholeTicks * bias).toLong()
+            if (playbackPosition.inWholeTicks >= chapterPositionTicks) {
+                marking.setColor(R.color.jellyfin_accent)
+            }
         }
     }
 
     private fun Player.updateSkipMediaSegmentButton() {
-        val mediaSegments = askToSkipMediaSegments
-        if (mediaSegments.isEmpty()) return
-
         val playbackPosition = currentPosition.milliseconds
-        val currentMediaSegment = mediaSegments.find { seg -> playbackPosition in seg.start..seg.end }
-        if (currentMediaSegment != null) {
-            playerMenuHelper?.skipMediaSegmentButton?.showSkipSegmentButton(currentMediaSegment)
+
+        val mediaSegment = askToSkipMediaSegments.find { mediaSegment ->
+            val start = mediaSegment.startTicks.ticks
+            val end = mediaSegment.endTicks.ticks
+            playbackPosition in start..end
+        }
+
+        if (mediaSegment != null) {
+            playerMenuHelper?.skipMediaSegmentButton?.showSkipSegmentButton(mediaSegment)
         } else {
             playerMenuHelper?.skipMediaSegmentButton?.hideSkipSegmentButton()
         }
     }
 
     private suspend fun Player.reportPlaybackState() {
-        val mediaSource = mediaSourceOrNull as? RemoteJellyfinMediaSource ?: return
+        val mediaSource = mediaSourceOrNull ?: return
         val playbackPosition = currentPosition.milliseconds
+        val positionTicks = playbackPosition.inWholeTicks
+
+        // Always save locally if it's a download
+        if (mediaSource is LocalJellyfinMediaSource) {
+            withContext(Dispatchers.IO) {
+                downloadDao.updatePlaybackPosition(mediaSource.itemId, positionTicks, System.currentTimeMillis())
+            }
+        }
+
         if (playbackState != Player.STATE_ENDED) {
             val stream = AudioManager.STREAM_MUSIC
             val volumeRange = audioManager.getVolumeRange(stream)
             val currentVolume = audioManager.getStreamVolume(stream)
             val isPaused = !isPlaying
-            try {
-                withContext(Dispatchers.IO) {
-                    playStateApi.reportPlaybackProgress(
-                        PlaybackProgressInfo(
-                            itemId = mediaSource.itemId,
-                            playMethod = mediaSource.playMethod,
-                            playSessionId = mediaSource.playSessionId,
-                            liveStreamId = mediaSource.liveStreamId,
-                            audioStreamIndex = mediaSource.selectedAudioStream?.index,
-                            subtitleStreamIndex = mediaSource.selectedSubtitleStream?.index,
-                            isPaused = isPaused,
-                            isMuted = false,
-                            canSeek = true,
-                            positionTicks = playbackPosition.inWholeTicks,
-                            volumeLevel = (currentVolume - volumeRange.first) * Constants.PERCENT_MAX / volumeRange.width,
-                            repeatMode = RepeatMode.REPEAT_NONE,
-                            playbackOrder = PlaybackOrder.DEFAULT,
-                        ),
-                    )
+
+            // Report to server if it's a remote source OR if it's a local source but we have a connection
+            if (mediaSource is RemoteJellyfinMediaSource || (mediaSource is LocalJellyfinMediaSource && apiClient.baseUrl != null)) {
+                try {
+                    withContext(Dispatchers.IO) {
+                        playStateApi.reportPlaybackProgress(
+                            PlaybackProgressInfo(
+                                itemId = mediaSource.itemId,
+                                playMethod = mediaSource.playMethod,
+                                playSessionId = mediaSource.playSessionId,
+                                liveStreamId = (mediaSource as? RemoteJellyfinMediaSource)?.liveStreamId,
+                                audioStreamIndex = mediaSource.selectedAudioStream?.index,
+                                subtitleStreamIndex = mediaSource.selectedSubtitleStream?.index,
+                                isPaused = isPaused,
+                                isMuted = false,
+                                canSeek = true,
+                                positionTicks = positionTicks,
+                                volumeLevel = (currentVolume - volumeRange.first) * Constants.PERCENT_MAX / volumeRange.width,
+                                repeatMode = RepeatMode.REPEAT_NONE,
+                                playbackOrder = PlaybackOrder.DEFAULT,
+                            ),
+                        )
+                    }
+                } catch (e: ApiClientException) {
+                    Timber.e(e, "Failed to report playback progress")
                 }
-            } catch (e: ApiClientException) {
-                Timber.e(e, "Failed to report playback progress")
             }
         }
     }
 
     private fun reportPlaybackStop() {
-        val mediaSource = mediaSourceOrNull as? RemoteJellyfinMediaSource ?: return
+        val mediaSource = mediaSourceOrNull ?: return
         val player = playerOrNull ?: return
         val hasFinished = player.playbackState == Player.STATE_ENDED
         val lastPositionTicks = when {
@@ -476,33 +505,46 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             else -> player.currentPosition.milliseconds.inWholeTicks
         }
 
-        // viewModelScope may already be cancelled at this point, so we need to fallback
-        CoroutineScope(Dispatchers.Main).launch {
-            try {
-                // Report stopped playback
-                withContext(Dispatchers.IO) {
-                    playStateApi.reportPlaybackStopped(
-                        PlaybackStopInfo(
-                            itemId = mediaSource.itemId,
-                            positionTicks = lastPositionTicks,
-                            playSessionId = mediaSource.playSessionId,
-                            liveStreamId = mediaSource.liveStreamId,
-                            failed = false,
-                        ),
-                    )
+        // Use a more reliable scope that outlives the Activity/ViewModel if necessary
+        CoroutineScope(Dispatchers.Main + SupervisorJob()).launch {
+            withContext(NonCancellable) {
+                // Save locally
+                if (mediaSource is LocalJellyfinMediaSource) {
+                    withContext(Dispatchers.IO) {
+                        downloadDao.updatePlaybackPosition(mediaSource.itemId, lastPositionTicks, System.currentTimeMillis())
+                    }
                 }
 
-                // Mark video as watched if playback finished
-                if (hasFinished) {
-                    withContext(Dispatchers.IO) {
-                        playStateApi.markPlayedItem(itemId = mediaSource.itemId)
+                // Report to server
+                if (mediaSource is RemoteJellyfinMediaSource || (mediaSource is LocalJellyfinMediaSource && apiClient.baseUrl != null)) {
+                    try {
+                        withContext(Dispatchers.IO) {
+                            playStateApi.reportPlaybackStopped(
+                                PlaybackStopInfo(
+                                    itemId = mediaSource.itemId,
+                                    positionTicks = lastPositionTicks,
+                                    playSessionId = mediaSource.playSessionId,
+                                    liveStreamId = (mediaSource as? RemoteJellyfinMediaSource)?.liveStreamId,
+                                    failed = false,
+                                ),
+                            )
+                        }
+
+                        // Mark video as watched if playback finished
+                        if (hasFinished) {
+                            withContext(Dispatchers.IO) {
+                                playStateApi.markPlayedItem(itemId = mediaSource.itemId)
+                            }
+                        }
+                    } catch (e: ApiClientException) {
+                        Timber.e(e, "Failed to report playback stop")
                     }
                 }
 
                 // Stop active encoding if transcoding
-                stopTranscoding(mediaSource)
-            } catch (e: ApiClientException) {
-                Timber.e(e, "Failed to report playback stop")
+                if (mediaSource is RemoteJellyfinMediaSource) {
+                    stopTranscoding(mediaSource)
+                }
             }
         }
     }
@@ -518,45 +560,29 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    private fun applyMediaSegments(jellyfinMediaSource: JellyfinMediaSource) {
-        askToSkipMediaSegments = emptyList()
-
+    private fun applyMediaSegments(mediaSource: JellyfinMediaSource) {
         viewModelScope.launch {
-            if (jellyfinMediaSource.item != null) {
-                val mediaSegments = mediaSegmentRepository.getSegmentsForItem(jellyfinMediaSource.item)
-                val newAskToSkipMediaSegments = mutableListOf<MediaSegmentDto>()
+            val mediaSegments = mediaSource.item?.let { item ->
+                mediaSegmentRepository.getSegmentsForItem(item)
+            } ?: emptyList()
 
-                for (mediaSegment in mediaSegments) {
-                    val action = mediaSegmentRepository.getMediaSegmentAction(mediaSegment)
-
-                    when (action) {
-                        MediaSegmentAction.SKIP -> addSkipAction(mediaSegment)
-                        MediaSegmentAction.ASK_TO_SKIP -> newAskToSkipMediaSegments.add(mediaSegment)
-                        MediaSegmentAction.NOTHING -> Unit
-                    }
-                }
-
-                askToSkipMediaSegments = newAskToSkipMediaSegments
+            for (mediaSegment in mediaSegments) {
+                addSkipAction(mediaSegment)
             }
         }
     }
 
     private fun addSkipAction(mediaSegment: MediaSegmentDto) {
-        val player = playerOrNull ?: return
-
-        player
-            .createMessage { _, _ ->
-                viewModelScope.launch(Dispatchers.Main) {
-                    player.seekTo(mediaSegment.end.inWholeMilliseconds)
-                }
+        if (mediaSegment.type == org.jellyfin.sdk.model.api.MediaSegmentType.INTRO ||
+            mediaSegment.type == org.jellyfin.sdk.model.api.MediaSegmentType.OUTRO
+        ) {
+            askToSkipMediaSegments = askToSkipMediaSegments + mediaSegment
+            if (playerOrNull?.playbackState == Player.STATE_READY) {
+                startSkipMediaSegmentUpdates()
             }
-            // Segments at position 0 will never be hit by ExoPlayer so we need to add a minimum value
-            .setPosition(mediaSegment.start.inWholeMilliseconds.coerceAtLeast(1))
-            .setDeleteAfterDelivery(false)
-            .send()
+        }
     }
 
-    // Player controls
     fun play() {
         playerOrNull?.play()
     }
@@ -579,60 +605,46 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
     private fun getCurrentChapterStartPosition(chapters: List<ChapterInfo>, playbackPosition: Duration): Duration? {
         val startPositions = chapters.map { c -> c.startPositionTicks.ticks }
-        return startPositions.findLast { pos -> playbackPosition >= pos }
+        return startPositions.lastOrNull { p -> p < playbackPosition - Constants.MAX_SKIP_TO_PREV_CHAPTER_MS.milliseconds }
     }
 
     private fun getNextChapterStartPosition(chapters: List<ChapterInfo>, playbackPosition: Duration): Duration? {
         val startPositions = chapters.map { c -> c.startPositionTicks.ticks }
-        val currentChapterIdx = startPositions.indexOfLast { pos -> playbackPosition >= pos }
-        if (currentChapterIdx == -1) return null
-        val nextChapterIndex = currentChapterIdx + 1
-        return startPositions.getOrElse(nextChapterIndex) { _ -> Duration.INFINITE }
+        return startPositions.find { p -> p > playbackPosition }
     }
 
     fun previousChapter() {
-        val chapters = mediaSourceOrNull?.item?.chapters ?: return
-        val currentPosition = playerOrNull?.currentPosition?.milliseconds ?: return
+        val player = playerOrNull ?: return
+        val mediaSource = mediaSourceOrNull ?: return
+        val chapters = mediaSource.item?.chapters ?: return
 
-        // Update the playback position to be slightly in the past, to check if we should go back to the beginning of the current
-        // chapter or the previous one, if not enough time has elapsed since the start of the current chapter
-        val skipToPreviousDuration = Constants.MAX_SKIP_TO_PREV_CHAPTER_MS.milliseconds
-        val playbackPosition = currentPosition - skipToPreviousDuration
-        // If we'd end up with a negative position then we need to play the previous item
-        if (playbackPosition < Duration.ZERO) {
-            skipToPrevious()
-        } else {
-            val seekToPosition = getCurrentChapterStartPosition(chapters, playbackPosition) ?: return
-            playerOrNull?.seekTo(seekToPosition.inWholeMilliseconds)
-        }
+        val currentPosition = player.currentPosition.milliseconds
+        val target = getCurrentChapterStartPosition(chapters, currentPosition) ?: Duration.ZERO
+
+        player.seekTo(target.inWholeMilliseconds)
     }
 
     fun nextChapter() {
-        val chapters = mediaSourceOrNull?.item?.chapters ?: return
-        val currentPosition = playerOrNull?.currentPosition?.milliseconds ?: return
-        val playbackPosition = getNextChapterStartPosition(chapters, currentPosition) ?: return
+        val player = playerOrNull ?: return
+        val mediaSource = mediaSourceOrNull ?: return
+        val chapters = mediaSource.item?.chapters ?: return
 
-        if (playbackPosition == Duration.INFINITE) {
-            skipToNext()
-        } else {
-            playerOrNull?.seekTo(playbackPosition.inWholeMilliseconds)
+        val currentPosition = player.currentPosition.milliseconds
+        val target = getNextChapterStartPosition(chapters, currentPosition)
+
+        if (target != null) {
+            player.seekTo(target.inWholeMilliseconds)
         }
     }
 
     fun skipToPrevious() {
         val player = playerOrNull ?: return
-        when {
-            // Skip to previous element
-            player.currentPosition <= Constants.MAX_SKIP_TO_PREV_MS -> viewModelScope.launch {
-                pause()
-                if (!queueManager.previous()) {
-                    // Skip to previous failed, go to start of video anyway
-                    playerOrNull?.seekTo(0)
-                    play()
-                }
+        if (player.currentPosition > Constants.MAX_SKIP_TO_PREV_MS) {
+            player.seekTo(0)
+        } else {
+            viewModelScope.launch {
+                queueManager.previous()
             }
-            // Rewind to start of track if not at the start already
-            else -> player.seekTo(0)
         }
     }
 
@@ -644,18 +656,15 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
 
     fun skipMediaSegment(mediaSegmentDto: MediaSegmentDto?) {
         val player = playerOrNull ?: return
-        val mediaSegment = mediaSegmentDto ?: return
-        player.seekTo(mediaSegment.end.inWholeMilliseconds + 1)
+        val target = mediaSegmentDto?.endTicks?.ticks ?: return
+        player.seekTo(target.inWholeMilliseconds)
     }
 
     fun getStateAndPause(): PlayState? {
         val player = playerOrNull ?: return null
-
-        val playWhenReady = player.playWhenReady
+        val state = PlayState(player.playWhenReady, player.currentPosition.milliseconds)
         player.pause()
-        val position = player.contentPosition.milliseconds
-
-        return PlayState(playWhenReady, position)
+        return state
     }
 
     fun logTracks() {
@@ -666,11 +675,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         return queueManager.changeBitrate(bitrate)
     }
 
-    /**
-     * Set the playback speed to [speed]
-     *
-     * @return true if the speed was changed
-     */
     fun setPlaybackSpeed(speed: Float): Boolean {
         val player = playerOrNull ?: return false
 
@@ -682,16 +686,6 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         return false
     }
 
-    fun setPressSpeedUp(isPressing: Boolean, speed: Float): Boolean {
-        if (!isPressing) {
-            return setPlaybackSpeed(playSpeed)
-        }
-        val player = playerOrNull ?: return false
-        val parameters = player.playbackParameters
-        playSpeed = parameters.speed
-        return setPlaybackSpeed(speed)
-    }
-
     fun stop() {
         pause()
         reportPlaybackStop()
@@ -699,10 +693,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     private fun setVolume(percent: Int) {
-        if (audioManager.isVolumeFixed) return
         val stream = AudioManager.STREAM_MUSIC
         val volumeRange = audioManager.getVolumeRange(stream)
-        val scaled = volumeRange.scaleInRange(percent)
+        val scaled = (percent * volumeRange.width / Constants.PERCENT_MAX) + volumeRange.first
         audioManager.setStreamVolume(stream, scaled, 0)
     }
 
@@ -764,7 +757,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         }
     }
 
-    override fun onPositionDiscontinuity(oldPosition: Player.PositionInfo, newPosition: Player.PositionInfo, reason: Int) {
+    override fun onTracksChanged(tracks: androidx.media3.common.Tracks) {
+        super.onTracksChanged(tracks)
+        // If we're playing a local file and the metadata was missing,
+        // we can use this event to log or reconcile tracks in the future.
+        Timber.d("Player Trace: Tracks changed. Total groups: ${tracks.groups.size}")
+    }
+
+    override fun onPositionDiscontinuity(
+        oldPosition: Player.PositionInfo,
+        newPosition: Player.PositionInfo,
+        reason: Int,
+    ) {
         super.onPositionDiscontinuity(oldPosition, newPosition, reason)
         playerOrNull?.setWatchedChapterMarkings()
         playerOrNull?.updateSkipMediaSegmentButton()
@@ -791,6 +795,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 }
             }
         }
+    }
+
+    override fun onPlaybackParametersChanged(playbackParameters: androidx.media3.common.PlaybackParameters) {
+        _playbackSpeed.postValue(playbackParameters.speed)
     }
 
     fun cancelFallbackRetry() {
