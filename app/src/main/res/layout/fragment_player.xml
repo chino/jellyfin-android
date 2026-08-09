@@ -121,6 +121,31 @@
             tools:ignore="KeyboardInaccessibleWidget"
             tools:visibility="visible" />
 
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/speed_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal|top"
+            android:layout_marginTop="48dp"
+            android:background="@drawable/playback_info_background"
+            android:padding="16dp"
+            android:textColor="@android:color/white"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:text="2.0x \u00BB"
+            tools:visibility="visible" />
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/gesture_lock_indicator"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/playback_info_background"
+            android:padding="8dp"
+            android:src="@drawable/ic_screen_unlock_white_24dp"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
         <androidx.appcompat.widget.AppCompatImageButton
             android:id="@+id/unlock_screen_button"
             android:layout_width="wrap_content"

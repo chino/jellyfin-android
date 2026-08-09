@@ -27,6 +27,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class PlayerGestureHelper(
     private val fragment: PlayerFragment,
@@ -80,6 +81,11 @@ class PlayerGestureHelper(
      * Tracks whether a horizontal swipe seek gesture is in progress.
      */
     private var isHorizontalSeeking = false
+    private var speedUpStartX = 0f
+    private var speedUpStartY = 0f
+    private var isSpeedLocked = false
+    private var initialSpeedBeforeGesture = 1.0f
+    private var isSpeedFrozen = false
 
     /**
      * Tracks accumulated seek time during horizontal swipe (in milliseconds).
@@ -147,7 +153,7 @@ class PlayerGestureHelper(
                 playerView.foreground?.apply {
                     val left = if (isFastForward) viewCenterX else 0
                     val right = if (isFastForward) viewWidth else viewCenterX
-                    setBounds(left, viewCenterY - viewCenterX / 2, right, viewCenterY + viewCenterX / 2)
+                    setBounds(left, viewCenterY - (viewCenterX / 2), right, viewCenterY + (viewCenterX / 2))
                     setHotspot(e.x, e.y)
                     state = intArrayOf(android.R.attr.state_enabled, android.R.attr.state_pressed)
                     playerView.postDelayed(Constants.DOUBLE_TAP_RIPPLE_DURATION_MS) {
@@ -178,9 +184,15 @@ class PlayerGestureHelper(
                     return
                 }
 
+                speedUpStartX = e.x
+                speedUpStartY = e.y
+                isSpeedLocked = false
+                isSpeedFrozen = false
+                initialSpeedBeforeGesture = fragment.viewModel.playerOrNull?.playbackParameters?.speed ?: 1.0f
+
                 with(fragment) {
                     isOnPressingSpeedUp = true
-                    onPressSpeedUp(true)
+                    onPressSpeedUp(isPressing = true)
                 }
             }
 
@@ -270,7 +282,11 @@ class PlayerGestureHelper(
 
                     // Update position text (current position / duration)
                     val targetPosition = (seekStartPosition + seekTimeAccumulator).coerceIn(0, mediaDuration)
-                    seekPositionText.text = "${formatTime(targetPosition)} / ${formatTime(mediaDuration)}"
+                    seekPositionText.text = playerView.context.getString(
+                        R.string.player_time_range_format,
+                        formatTime(targetPosition),
+                        formatTime(mediaDuration),
+                    )
 
                     // Update progress bar
                     if (mediaDuration > 0) {
@@ -396,7 +412,12 @@ class PlayerGestureHelper(
         playerView.setOnTouchListener { _, event ->
             if (playerView.useController) {
                 when (event.pointerCount) {
-                    1 -> gestureDetector.onTouchEvent(event)
+                    1 -> {
+                        gestureDetector.onTouchEvent(event)
+                        if (isOnPressingSpeedUp) {
+                            handleSpeedUpMove(event)
+                        }
+                    }
                     2 -> zoomGestureDetector.onTouchEvent(event)
                 }
             } else {
@@ -405,8 +426,9 @@ class PlayerGestureHelper(
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
                 if (isOnPressingSpeedUp) {
                     isOnPressingSpeedUp = false
-                    with(fragment) {
-                        onPressSpeedUp(false)
+                    fragment.updateGestureLockIndicator(x = 0f, y = 0f, isLocked = false, visible = false)
+                    if (!isSpeedLocked || event.action == MotionEvent.ACTION_CANCEL) {
+                        fragment.onPressSpeedUp(isPressing = false)
                     }
                 }
 
@@ -445,6 +467,39 @@ class PlayerGestureHelper(
 
     fun handleConfiguration(newConfig: Configuration) {
         updateZoomMode(fragment.isLandscape(newConfig) && isZoomEnabled)
+    }
+
+    private fun handleSpeedUpMove(event: MotionEvent) {
+        if (event.action != MotionEvent.ACTION_MOVE) return
+
+        val deltaX = event.x - speedUpStartX
+        val deltaY = event.y - speedUpStartY
+
+        // Calculate lock: slide down threshold
+        val lockThreshold = playerView.resources.dip(100)
+        val visibilityThreshold = playerView.resources.dip(40)
+        val nearLockZone = deltaY > visibilityThreshold
+        isSpeedLocked = appPreferences.exoPlayerEnableSpeedLock && deltaY > lockThreshold
+
+        if (nearLockZone) {
+            isSpeedFrozen = true
+        }
+
+        val speedToReport: Float
+        if (isSpeedFrozen) {
+            speedToReport = fragment.viewModel.playerOrNull?.playbackParameters?.speed ?: 1.0f
+        } else {
+            // Calculate speed relative to configured multiplier
+            // Range: 1.0x to 3.0x. Sensitivity: full screen width for +/- 2.0x
+            val screenWidth = playerView.width.toFloat()
+            val baseSpeed = appPreferences.exoPlayerHoldSpeedMultiplier
+            val speedDelta = (deltaX / screenWidth) * 2.0f
+            val targetSpeed = (baseSpeed + speedDelta).coerceIn(1.0f, 3.0f)
+            speedToReport = (targetSpeed * 10).roundToInt() / 10f
+        }
+
+        fragment.onUpdatePressSpeed(speedToReport, isSpeedLocked)
+        fragment.updateGestureLockIndicator(event.x, event.y, isSpeedLocked, visible = nearLockZone)
     }
 
     private fun updateZoomMode(enabled: Boolean) {
