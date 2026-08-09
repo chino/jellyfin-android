@@ -106,6 +106,9 @@
     <string name="pref_exoplayer_remember_brightness">Remember display brightness</string>
     <string name="pref_exoplayer_allow_press_speed_up">Hold to speed up</string>
     <string name="pref_exoplayer_allow_press_speed_up_summary">Touch and hold the screen to temporarily speed up playback</string>
+    <string name="pref_exoplayer_hold_speed_multiplier_title">Hold speed multiplier</string>
+    <string name="pref_exoplayer_enable_speed_lock_title">Enable slide-to-lock speed</string>
+    <string name="pref_exoplayer_enable_speed_lock_summary">Slide downwards while holding to lock the current playback speed</string>
     <string name="pref_exoplayer_allow_background_audio">Background audio</string>
     <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
     <string name="pref_exoplayer_allow_horizontal_gesture">Horizontal gestures</string>
