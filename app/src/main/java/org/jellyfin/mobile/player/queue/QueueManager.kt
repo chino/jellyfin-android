@@ -12,7 +12,11 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jellyfin.mobile.data.dao.DownloadDao
+import org.jellyfin.mobile.data.entity.DownloadFiles
 import org.jellyfin.mobile.downloads.DownloadFileType
+import org.jellyfin.mobile.R
+import org.jellyfin.mobile.app.AppPreferences
+import org.jellyfin.mobile.app.StorageManager
 import org.jellyfin.mobile.player.PlayerException
 import org.jellyfin.mobile.player.PlayerViewModel
 import org.jellyfin.mobile.player.deviceprofile.DeviceProfileBuilder
@@ -23,8 +27,11 @@ import org.jellyfin.mobile.player.source.LocalJellyfinMediaSource
 import org.jellyfin.mobile.player.source.MediaSourceResolver
 import org.jellyfin.mobile.player.source.PlaybackDetails
 import org.jellyfin.mobile.player.source.RemoteJellyfinMediaSource
+import org.jellyfin.sdk.model.extensions.inWholeTicks
+import org.jellyfin.sdk.model.extensions.ticks
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.videosApi
+import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.api.operations.VideosApi
 import org.jellyfin.sdk.model.api.MediaProtocol
 import org.jellyfin.sdk.model.api.MediaStream
@@ -47,6 +54,8 @@ class QueueManager(
     private val mediaSourceResolver: MediaSourceResolver by inject()
     private val deviceProfileBuilder: DeviceProfileBuilder by inject()
     private val downloadDao: DownloadDao by inject()
+    private val storageManager: StorageManager by inject()
+    private val appPreferences: AppPreferences by inject()
     private val deviceProfile = deviceProfileBuilder.getDeviceProfile()
 
     private var currentQueue: List<UUID> = emptyList()
@@ -115,17 +124,17 @@ class QueueManager(
 
         val mainFile = files.find { it.type == DownloadFileType.ITEM } ?: return PlayerException.NetworkFailure()
 
+        val bestStartTime = resolveBestStartTime(itemId, startTime, download.item)
+
         val mediaSource = LocalJellyfinMediaSource(
             itemId = download.itemId,
             item = download.item,
-            sourceInfo = download.item.mediaSources!!.first(),
+            sourceInfo = download.item.mediaSources?.firstOrNull() ?: return PlayerException.UnsupportedContent(),
             playSessionId = download.id.toString(),
-            playbackDetails = PlaybackDetails(startTime, audioStreamIndex, subtitleStreamIndex),
+            playbackDetails = PlaybackDetails(bestStartTime, audioStreamIndex, subtitleStreamIndex),
             remoteFileUri = mainFile.uri,
         )
-        startTime?.let { duration -> mediaSource.startTime = duration }
-        audioStreamIndex?.let { index -> mediaSource.selectAudioStream(mediaSource.audioStreams[index]) }
-        subtitleStreamIndex?.let { index -> mediaSource.selectSubtitleStream(mediaSource.subtitleStreams[index]) }
+        mediaSource.startTime = bestStartTime
 
         _currentMediaSource.value = mediaSource
 
@@ -133,6 +142,27 @@ class QueueManager(
         viewModel.load(mediaSource, prepareStreams(mediaSource), playWhenReady)
 
         return null
+    }
+
+    private suspend fun resolveBestStartTime(itemId: UUID, uiStartTime: Duration?, item: BaseItemDto?): Duration {
+        val localDownload = withContext(Dispatchers.IO) { downloadDao.getDownloadByItemId(itemId) }
+
+        val uiTicks = uiStartTime?.inWholeTicks ?: 0L
+        val localTicks = localDownload?.playbackPositionTicks ?: 0L
+        val serverTicks = item?.userData?.playbackPositionTicks ?: 0L
+
+        val localLastPlayed = localDownload?.lastPlayedAt ?: 0L
+        // server lastPlayedDate is a string ISO date, let's try to parse it if we really wanted to be precise
+        // but for now, let's use the rule: if local is newer than a few seconds, or local ticks > server ticks, prefer local.
+
+        val bestTicks = maxOf(uiTicks, localTicks, serverTicks)
+
+        val runTimeTicks = item?.runTimeTicks ?: Long.MAX_VALUE
+        if (bestTicks > runTimeTicks * 0.95) {
+            return Duration.ZERO
+        }
+
+        return bestTicks.ticks
     }
 
     /**
@@ -151,12 +181,39 @@ class QueueManager(
         enableDirectPlay: Boolean? = null,
         enableDirectStream: Boolean? = null,
     ): PlayerException? {
+        // Smart Local Playback: Check if we have a local download first
+        if (appPreferences.exoPlayerSmartLocalPlayback) {
+            val download = withContext(Dispatchers.IO) { downloadDao.getDownloadByItemId(itemId) }
+            if (download != null) {
+                val files = withContext(Dispatchers.IO) { downloadDao.getFiles(download.id) }
+                val downloadFiles = DownloadFiles(download, files)
+                if (storageManager.verify(downloadFiles)) {
+                    Timber.d("Smart Local Playback: Item $itemId found locally. Redirecting to local file.")
+                    try {
+                        return startDownloadPlayback(
+                            itemId = itemId,
+                            startTime = startTime, // resolveBestStartTime will be called in startDownloadPlayback
+                            audioStreamIndex = audioStreamIndex,
+                            subtitleStreamIndex = subtitleStreamIndex,
+                            playWhenReady = playWhenReady
+                        )
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to start local playback for $itemId, falling back to remote")
+                    }
+                }
+            }
+        }
+
+        // Smart Resume: Compare Local vs Server before resolving remote source
+        // Note: we don't have the full 'item' yet, but we can query the download DB by itemId
+        val bestStartTime = resolveBestStartTime(itemId, startTime, null)
+
         mediaSourceResolver.resolveMediaSource(
             itemId = itemId,
             mediaSourceId = mediaSourceId,
             deviceProfile = deviceProfile,
             maxStreamingBitrate = maxStreamingBitrate,
-            startTime = startTime,
+            startTime = bestStartTime,
             audioStreamIndex = audioStreamIndex,
             subtitleStreamIndex = subtitleStreamIndex,
             enableDirectPlay = enableDirectPlay,
@@ -311,11 +368,11 @@ class QueueManager(
      * a [MergingMediaSource] containing the mentioned media stream and all external subtitle streams.
      */
     @CheckResult
-    private fun prepareStreams(source: LocalJellyfinMediaSource): MediaSource {
+    internal fun prepareStreams(source: LocalJellyfinMediaSource): MediaSource {
         return createDownloadVideoMediaSource(source.id, source.remoteFileUri)
     }
 
-    private fun prepareStreams(source: RemoteJellyfinMediaSource): MediaSource {
+    internal fun prepareStreams(source: RemoteJellyfinMediaSource): MediaSource {
         val subtitleConfigurations = createExternalSubtitleMediaSources(source)
         return createVideoMediaSource(source, subtitleConfigurations)
     }

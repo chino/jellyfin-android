@@ -56,6 +56,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var startLandscapeVideoInLandscapePreference: CheckBoxPreference
     private lateinit var swipeGesturesPreference: CheckBoxPreference
     private lateinit var pressSpeedUpPreference: CheckBoxPreference
+    private lateinit var smartLocalPlaybackPreference: CheckBoxPreference
     private lateinit var rememberBrightnessPreference: Preference
     private lateinit var backgroundAudioPreference: Preference
     private lateinit var horizontalGesturePreference: Preference
@@ -123,6 +124,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             defaultOnSelectionChange { selection ->
                 startLandscapeVideoInLandscapePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 swipeGesturesPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                smartLocalPlaybackPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 rememberBrightnessPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && swipeGesturesPreference.checked
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
@@ -143,6 +145,12 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             defaultOnCheckedChange { checked ->
                 rememberBrightnessPreference.enabled = checked
             }
+        }
+        smartLocalPlaybackPreference = checkBox(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK) {
+            titleRes = R.string.pref_exoplayer_smart_local_playback_title
+            summaryRes = R.string.pref_exoplayer_smart_local_playback_summary
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+            defaultValue = true
         }
         rememberBrightnessPreference = checkBox(Constants.PREF_EXOPLAYER_REMEMBER_BRIGHTNESS) {
             titleRes = R.string.pref_exoplayer_remember_brightness

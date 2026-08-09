@@ -384,6 +384,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private suspend fun Player.reportPlaybackStart(mediaSource: RemoteJellyfinMediaSource) {
         try {
             val isPaused = !isPlaying
+            val volumeLevel = audioManager.getVolumeLevelPercent()
             withContext(Dispatchers.IO) {
                 playStateApi.reportPlaybackStart(
                     PlaybackStartInfo(
@@ -397,7 +398,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                         isMuted = false,
                         canSeek = true,
                         positionTicks = mediaSource.startTime.inWholeTicks,
-                        volumeLevel = audioManager.getVolumeLevelPercent(),
+                        volumeLevel = volumeLevel,
                         repeatMode = RepeatMode.REPEAT_NONE,
                         playbackOrder = PlaybackOrder.DEFAULT,
                     ),
@@ -437,10 +438,8 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val mediaSource = mediaSourceOrNull as? RemoteJellyfinMediaSource ?: return
         val playbackPosition = currentPosition.milliseconds
         if (playbackState != Player.STATE_ENDED) {
-            val stream = AudioManager.STREAM_MUSIC
-            val volumeRange = audioManager.getVolumeRange(stream)
-            val currentVolume = audioManager.getStreamVolume(stream)
             val isPaused = !isPlaying
+            val volumeLevel = audioManager.getVolumeLevelPercent()
             try {
                 withContext(Dispatchers.IO) {
                     playStateApi.reportPlaybackProgress(
@@ -455,7 +454,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             isMuted = false,
                             canSeek = true,
                             positionTicks = playbackPosition.inWholeTicks,
-                            volumeLevel = (currentVolume - volumeRange.first) * Constants.PERCENT_MAX / volumeRange.width,
+                            volumeLevel = volumeLevel,
                             repeatMode = RepeatMode.REPEAT_NONE,
                             playbackOrder = PlaybackOrder.DEFAULT,
                         ),

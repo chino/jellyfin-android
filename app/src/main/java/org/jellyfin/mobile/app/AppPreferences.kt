@@ -99,6 +99,9 @@ class AppPreferences(context: Context) {
     val exoPlayerStartLandscapeVideoInLandscape: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_START_LANDSCAPE_VIDEO_IN_LANDSCAPE, false)
 
+    val exoPlayerSmartLocalPlayback: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK, true)
+
     val exoPlayerAllowSwipeGestures: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_SWIPE_GESTURES, true)
 

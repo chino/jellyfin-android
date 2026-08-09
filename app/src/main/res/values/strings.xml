@@ -106,6 +106,9 @@
     <string name="pref_exoplayer_remember_brightness">Remember display brightness</string>
     <string name="pref_exoplayer_allow_press_speed_up">Hold to speed up</string>
     <string name="pref_exoplayer_allow_press_speed_up_summary">Touch and hold the screen to temporarily speed up playback</string>
+    <string name="pref_exoplayer_smart_local_playback_title">Prefer local downloads</string>
+    <string name="pref_exoplayer_smart_local_playback_summary">Automatically use downloaded files when playing from the library</string>
+    <string name="playback_using_local_file">Using local download for playback</string>
     <string name="pref_exoplayer_allow_background_audio">Background audio</string>
     <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
     <string name="pref_exoplayer_allow_horizontal_gesture">Horizontal gestures</string>

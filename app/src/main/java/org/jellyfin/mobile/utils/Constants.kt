@@ -39,6 +39,9 @@ object Constants {
     const val PREF_EXOPLAYER_BRIGHTNESS = "pref_exoplayer_brightness"
     const val PREF_EXOPLAYER_ALLOW_BACKGROUND_AUDIO = "pref_exoplayer_allow_background_audio"
     const val PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE = "pref_exoplayer_allow_horizontal_gesture"
+    const val PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER = "pref_exoplayer_hold_speed_multiplier"
+    const val PREF_EXOPLAYER_ENABLE_SPEED_LOCK = "pref_exoplayer_enable_speed_lock"
+    const val PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK = "pref_exoplayer_smart_local_playback"
     const val PREF_EXOPLAYER_DIRECT_PLAY_ASS = "pref_exoplayer_direct_play_ass"
     const val PREF_EXOPLAYER_NETWORK_BUFFER = "pref_exoplayer_network_buffer"
     const val NETWORK_BUFFER_AUTO = "auto"
@@ -125,7 +128,7 @@ object Constants {
     const val DOUBLE_TAP_RIPPLE_DURATION_MS = 100L
     const val FULL_SWIPE_RANGE_SCREEN_RATIO = 0.66f
     const val SCREEN_BRIGHTNESS_MAX = 255
-    const val HOLD_SPEEDUP_MULTIPLIER = 3f
+    const val HOLD_SPEEDUP_MULTIPLIER = 2f
     const val ZOOM_SCALE_BASE = 1f
     const val ZOOM_SCALE_THRESHOLD = 0.01f
     val ASPECT_RATIO_16_9 = Rational(16, 9)
