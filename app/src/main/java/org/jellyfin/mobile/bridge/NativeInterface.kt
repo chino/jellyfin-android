@@ -22,6 +22,7 @@ import org.jellyfin.mobile.utils.Constants.EXTRA_ITEM_ID
 import org.jellyfin.mobile.utils.Constants.EXTRA_PLAYER_ACTION
 import org.jellyfin.mobile.utils.Constants.EXTRA_POSITION
 import org.jellyfin.mobile.utils.Constants.EXTRA_TITLE
+import org.jellyfin.mobile.data.dao.UserDao
 import org.jellyfin.mobile.webapp.RemotePlayerService
 import org.jellyfin.mobile.webapp.RemoteVolumeProvider
 import org.jellyfin.sdk.api.client.ApiClient
@@ -45,9 +46,9 @@ class NativeInterface(private val context: Context) : KoinComponent {
     @SuppressLint("HardwareIds")
     @JavascriptInterface
     fun getDeviceInformation(): String? = try {
+        Timber.d("WebUI Trace: getDeviceInformation called")
         val apiClient: ApiClient = get()
         val deviceInfo = apiClient.deviceInfo
-        val clientInfo = apiClient.clientInfo
 
         JSONObject().apply {
             put("deviceId", deviceInfo.id)
@@ -56,18 +57,24 @@ class NativeInterface(private val context: Context) : KoinComponent {
             // otherwise the webui will fail to send it to the server
             val name = AuthorizationHeaderBuilder.encodeParameterValue(deviceInfo.name).padStart(1)
             put("deviceName", name)
-            put("appName", clientInfo.name)
-            put("appVersion", clientInfo.version)
+            put("appName", "Jellyfin for Android")
+            put("appVersion", BuildConfig.VERSION_NAME)
         }.toString()
     } catch (e: JSONException) {
         null
     }
 
     @JavascriptInterface
-    fun getCodecCapabilities(): String = deviceProfileBuilder.getWebCodecCapabilitiesJson()
+    fun getCodecCapabilities(): String {
+        Timber.d("WebUI Trace: getCodecCapabilities called")
+        return deviceProfileBuilder.getWebCodecCapabilitiesJson()
+    }
 
     @JavascriptInterface
-    fun hasChromecast(): Boolean = BuildConfig.IS_PROPRIETARY
+    fun hasChromecast(): Boolean {
+        Timber.d("WebUI Trace: hasChromecast called")
+        return BuildConfig.IS_PROPRIETARY
+    }
 
     @JavascriptInterface
     fun enableFullscreen(): Boolean {
@@ -134,6 +141,7 @@ class NativeInterface(private val context: Context) : KoinComponent {
 
     @JavascriptInterface
     fun downloadFiles(args: String): Boolean {
+        Timber.d("WebUI Trace: downloadFiles called with %s", args)
         try {
             val files = JSONArray(args)
             val itemIds = mutableSetOf<UUID>()
@@ -156,6 +164,7 @@ class NativeInterface(private val context: Context) : KoinComponent {
 
     @JavascriptInterface
     fun openDownloadManager() {
+        Timber.d("WebUI Trace: openDownloadManager called")
         emitEvent(ActivityEvent.OpenDownloads)
     }
 
