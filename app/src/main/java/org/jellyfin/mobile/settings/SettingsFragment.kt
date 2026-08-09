@@ -56,6 +56,9 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var startLandscapeVideoInLandscapePreference: CheckBoxPreference
     private lateinit var swipeGesturesPreference: CheckBoxPreference
     private lateinit var pressSpeedUpPreference: CheckBoxPreference
+    private lateinit var holdSpeedMultiplierPreference: Preference
+    private lateinit var enableSpeedLockPreference: CheckBoxPreference
+    private lateinit var smartLocalPlaybackPreference: CheckBoxPreference
     private lateinit var rememberBrightnessPreference: Preference
     private lateinit var backgroundAudioPreference: Preference
     private lateinit var horizontalGesturePreference: Preference
@@ -125,6 +128,9 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 swipeGesturesPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 rememberBrightnessPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && swipeGesturesPreference.checked
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                holdSpeedMultiplierPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
+                enableSpeedLockPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
+                smartLocalPlaybackPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 horizontalGesturePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
@@ -154,6 +160,33 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         pressSpeedUpPreference = checkBox(Constants.PREF_EXOPLAYER_ALLOW_PRESS_SPEED_UP) {
             titleRes = R.string.pref_exoplayer_allow_press_speed_up
             summaryRes = R.string.pref_exoplayer_allow_press_speed_up_summary
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+            defaultValue = true
+            defaultOnCheckedChange { checked ->
+                holdSpeedMultiplierPreference.enabled = checked
+                enableSpeedLockPreference.enabled = checked
+            }
+        }
+        val multiplierOptions = listOf(
+            SelectionItem("1.5", "1.5x"),
+            SelectionItem("2.0", "2.0x"),
+            SelectionItem("2.5", "2.5x"),
+            SelectionItem("3.0", "3.0x"),
+        )
+        holdSpeedMultiplierPreference = singleChoice(Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER, multiplierOptions) {
+            titleRes = R.string.pref_exoplayer_hold_speed_multiplier_title
+            initialSelection = "2.0"
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER && appPreferences.exoPlayerAllowPressSpeedUp
+        }
+        enableSpeedLockPreference = checkBox(Constants.PREF_EXOPLAYER_ENABLE_SPEED_LOCK) {
+            titleRes = R.string.pref_exoplayer_enable_speed_lock_title
+            summaryRes = R.string.pref_exoplayer_enable_speed_lock_summary
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER && appPreferences.exoPlayerAllowPressSpeedUp
+            defaultValue = true
+        }
+        smartLocalPlaybackPreference = checkBox(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK) {
+            titleRes = R.string.pref_exoplayer_smart_local_playback_title
+            summaryRes = R.string.pref_exoplayer_smart_local_playback_summary
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
             defaultValue = true
         }

@@ -122,6 +122,15 @@ class AppPreferences(context: Context) {
     val exoPlayerAllowHorizontalGesture: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE, true)
 
+    val exoPlayerHoldSpeedMultiplier: Float
+        get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER, "2.0")?.toFloatOrNull() ?: 2.0f
+
+    val exoPlayerEnableSpeedLock: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ENABLE_SPEED_LOCK, true)
+
+    val exoPlayerSmartLocalPlayback: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK, true)
+
     val exoPlayerDirectPlayAss: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_DIRECT_PLAY_ASS, false)
 
