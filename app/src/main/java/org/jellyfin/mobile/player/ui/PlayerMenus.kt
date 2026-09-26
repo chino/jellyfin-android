@@ -331,10 +331,14 @@ class PlayerMenus(
         (speedButton as? TextView)?.text = context.getString(R.string.player_speed_indicator_simple, formattedSpeed)
         val step = (speed / SPEED_MENU_STEP_SIZE).toInt()
         val exactMatch = abs((step * SPEED_MENU_STEP_SIZE) - speed) < SPEED_MATCH_TOLERANCE
+        // In a single-choice group, unchecking an item checks it instead and one item always stays checked,
+        // so the ticks are set with the group briefly made multi-choice
+        speedMenu.menu.setGroupCheckable(SPEED_MENU_GROUP, true, false)
         for (i in 0 until speedMenu.menu.size) {
             val item = speedMenu.menu[i]
             item.isChecked = exactMatch && item.itemId == step
         }
+        speedMenu.menu.setGroupCheckable(SPEED_MENU_GROUP, true, true)
     }
 
     private fun createQualityMenu() = PopupMenu(context, qualityButton).apply {
