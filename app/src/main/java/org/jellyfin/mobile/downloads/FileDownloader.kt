@@ -44,7 +44,9 @@ class FileDownloader(
             url(from.toString())
 
             header("Authorization", authorizationHeader)
-            rangeStart?.let { header("Range", "bytes=$rangeStart-") }
+            if (rangeStart != null && rangeStart > 0) {
+                header("Range", "bytes=$rangeStart-")
+            }
         }.build()
 
         val response = okHttpClient.newCall(request).await()
