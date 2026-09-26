@@ -128,8 +128,10 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 swipeGesturesPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 rememberBrightnessPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && swipeGesturesPreference.checked
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
-                holdSpeedMultiplierPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
-                enableSpeedLockPreference.enabled = selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
+                holdSpeedMultiplierPreference.enabled =
+                    selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
+                enableSpeedLockPreference.enabled =
+                    selection == VideoPlayerType.EXO_PLAYER && pressSpeedUpPreference.checked
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 horizontalGesturePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 smartLocalPlaybackPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
@@ -173,15 +175,20 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             SelectionItem("2.5", "2.5x"),
             SelectionItem("3.0", "3.0x"),
         )
-        holdSpeedMultiplierPreference = singleChoice(Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER, multiplierOptions) {
+        holdSpeedMultiplierPreference = singleChoice(
+            Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER,
+            multiplierOptions,
+        ) {
             titleRes = R.string.pref_exoplayer_hold_speed_multiplier_title
             initialSelection = "2.0"
-            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER && appPreferences.exoPlayerAllowPressSpeedUp
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER &&
+                appPreferences.exoPlayerAllowPressSpeedUp
         }
         enableSpeedLockPreference = checkBox(Constants.PREF_EXOPLAYER_ENABLE_SPEED_LOCK) {
             titleRes = R.string.pref_exoplayer_enable_speed_lock_title
             summaryRes = R.string.pref_exoplayer_enable_speed_lock_summary
-            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER && appPreferences.exoPlayerAllowPressSpeedUp
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER &&
+                appPreferences.exoPlayerAllowPressSpeedUp
             defaultValue = true
         }
         backgroundAudioPreference = checkBox(Constants.PREF_EXOPLAYER_ALLOW_BACKGROUND_AUDIO) {

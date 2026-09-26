@@ -376,8 +376,10 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             isVisible = visible
             if (visible) {
                 this.x = x - (width / 2f)
-                this.y = y - (height * 1.5f)
-                setImageResource(if (isLocked) R.drawable.ic_screen_lock_white_24dp else R.drawable.ic_screen_unlock_white_24dp)
+                this.y = y - (height * Constants.GESTURE_LOCK_INDICATOR_OFFSET_RATIO)
+                setImageResource(
+                    if (isLocked) R.drawable.ic_screen_lock_white_24dp else R.drawable.ic_screen_unlock_white_24dp,
+                )
             }
         }
     }

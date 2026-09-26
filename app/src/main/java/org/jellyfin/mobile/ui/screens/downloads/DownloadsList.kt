@@ -1,5 +1,6 @@
 package org.jellyfin.mobile.ui.screens.downloads
 
+import android.content.res.Resources
 import android.text.format.Formatter
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandHorizontally
@@ -42,6 +43,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,47 +77,8 @@ fun DownloadsList(
 ) {
     val selectionMode = selection.isNotEmpty()
 
-    // 1. Group by Category (Section)
-    val sections = remember(downloads) {
-        val groups = mutableListOf<DownloadSection>()
-
-        // SHOWS: Any item with a series name
-        val showGroups = downloads.filter { it.download.item.seriesName != null }
-            .groupBy { it.download.item.seriesName!! }
-            .map { (name, items) ->
-                DownloadGroup(
-                    name = name,
-                    items = items.sortedWith(compareBy({ it.download.item.parentIndexNumber ?: 0 }, { it.download.item.indexNumber ?: 0 }))
-                )
-            }.sortedBy { it.name }
-
-        if (showGroups.isNotEmpty()) groups.add(DownloadSection("Shows", showGroups))
-
-        // AUDIOBOOKS & BOOKS: Combine Audiobooks and regular Books
-        val bookItems = downloads.filter {
-            it.download.item.mediaType == MediaType.BOOK ||
-            it.download.item.type == BaseItemKind.AUDIO_BOOK ||
-            it.download.item.type == BaseItemKind.BOOK
-        }
-        if (bookItems.isNotEmpty()) groups.add(DownloadSection("Books & Audiobooks", listOf(DownloadGroup("My Library", bookItems.sortedBy { it.download.item.name }))))
-
-        // MUSIC: MediaType.AUDIO AND NOT already in Books
-        val musicItems = downloads.filter {
-            it.download.item.mediaType == MediaType.AUDIO &&
-            it.download.item.type != BaseItemKind.AUDIO_BOOK &&
-            it.download.item.type != BaseItemKind.BOOK
-        }
-        if (musicItems.isNotEmpty()) groups.add(DownloadSection("Music", listOf(DownloadGroup("All Tracks", musicItems.sortedBy { it.download.item.name }))))
-
-        // MOVIES: Video items without a series name
-        val movieItems = downloads.filter {
-            it.download.item.seriesName == null &&
-            it.download.item.mediaType == MediaType.VIDEO
-        }
-        if (movieItems.isNotEmpty()) groups.add(DownloadSection("Movies", listOf(DownloadGroup("Film Collection", movieItems.sortedBy { it.download.item.name }))))
-
-        groups
-    }
+    val resources = LocalResources.current
+    val sections = remember(downloads) { groupDownloads(resources, downloads) }
 
     val expandedStates = remember(sections) {
         mutableStateMapOf<String, Boolean>().apply {
@@ -131,10 +94,12 @@ fun DownloadsList(
     ) {
         sections.forEach { section ->
             item {
-                Column(modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.Black.copy(alpha = 0.15f))
-                    .padding(horizontal = 16.dp, vertical = 12.dp)) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.15f))
+                        .padding(horizontal = 16.dp, vertical = 12.dp),
+                ) {
                     Text(
                         text = section.title.uppercase(),
                         style = MaterialTheme.typography.overline,
@@ -157,7 +122,10 @@ fun DownloadsList(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = if (isExpanded) Icons.Default.KeyboardArrowDown else Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            imageVector = when {
+                                isExpanded -> Icons.Default.KeyboardArrowDown
+                                else -> Icons.AutoMirrored.Filled.KeyboardArrowRight
+                            },
                             contentDescription = null,
                             tint = MaterialTheme.colors.secondary,
                             modifier = Modifier.padding(end = 12.dp)
@@ -196,6 +164,50 @@ fun DownloadsList(
 data class DownloadSection(val title: String, val groups: List<DownloadGroup>)
 data class DownloadGroup(val name: String, val items: List<DownloadFiles>)
 
+private const val PERCENT = 100
+
+private val episodeOrder = compareBy<DownloadFiles>(
+    { it.download.item.parentIndexNumber ?: 0 },
+    { it.download.item.indexNumber ?: 0 },
+)
+
+private fun DownloadFiles.isBook(): Boolean = with(download.item) {
+    mediaType == MediaType.BOOK || type == BaseItemKind.AUDIO_BOOK || type == BaseItemKind.BOOK
+}
+
+/**
+ * Sort [downloads] into sections by type: books and audiobooks, shows (one group per series), music and movies.
+ */
+private fun groupDownloads(resources: Resources, downloads: List<DownloadFiles>): List<DownloadSection> {
+    val (books, others) = downloads.partition { it.isBook() }
+    val (episodes, standalone) = others.partition { it.download.item.seriesName != null }
+    val music = standalone.filter { it.download.item.mediaType == MediaType.AUDIO }
+    val movies = standalone.filter { it.download.item.mediaType == MediaType.VIDEO }
+
+    val shows = episodes
+        .groupBy { it.download.item.seriesName.orEmpty() }
+        .map { (series, items) -> DownloadGroup(series, items.sortedWith(episodeOrder)) }
+        .sortedBy { it.name }
+
+    fun singleGroup(sectionRes: Int, groupRes: Int, items: List<DownloadFiles>) = DownloadSection(
+        title = resources.getString(sectionRes),
+        groups = listOf(DownloadGroup(resources.getString(groupRes), items.sortedBy { it.download.item.name })),
+    )
+
+    return buildList {
+        if (shows.isNotEmpty()) add(DownloadSection(resources.getString(R.string.downloads_section_shows), shows))
+        if (books.isNotEmpty()) {
+            add(singleGroup(R.string.downloads_section_books, R.string.downloads_group_books, books))
+        }
+        if (music.isNotEmpty()) {
+            add(singleGroup(R.string.downloads_section_music, R.string.downloads_group_music, music))
+        }
+        if (movies.isNotEmpty()) {
+            add(singleGroup(R.string.downloads_section_movies, R.string.downloads_group_movies, movies))
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterialApi::class)
 @Composable
 fun DownloadItem(
@@ -225,7 +237,7 @@ fun DownloadItem(
 
     val iconRes = remember(download.item) {
         when {
-            download.item.type == BaseItemKind.AUDIO_BOOK || download.item.mediaType == MediaType.BOOK -> R.drawable.ic_audiobooks
+            downloadFiles.isBook() -> R.drawable.ic_audiobooks
             download.item.mediaType == MediaType.AUDIO -> R.drawable.ic_music_note_white_24dp
             else -> R.drawable.ic_local_movies_white_64
         }
@@ -305,7 +317,7 @@ fun DownloadItem(
                                     R.string.download_progress_bytes,
                                     Formatter.formatShortFileSize(context, downloaded),
                                     Formatter.formatShortFileSize(context, total ?: 0L),
-                                    (fraction * 100).toInt(),
+                                    (fraction * PERCENT).toInt(),
                                 )
                                 else -> stringResource(R.string.download_downloading)
                             },

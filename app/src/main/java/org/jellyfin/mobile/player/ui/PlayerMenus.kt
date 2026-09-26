@@ -330,7 +330,7 @@ class PlayerMenus(
         val formattedSpeed = String.format(Locale.US, "%.1f", speed).removeSuffix(".0")
         (speedButton as? TextView)?.text = context.getString(R.string.player_speed_indicator_simple, formattedSpeed)
         val step = (speed / SPEED_MENU_STEP_SIZE).toInt()
-        val exactMatch = abs((step * SPEED_MENU_STEP_SIZE) - speed) < 0.01f
+        val exactMatch = abs((step * SPEED_MENU_STEP_SIZE) - speed) < SPEED_MATCH_TOLERANCE
         for (i in 0 until speedMenu.menu.size) {
             val item = speedMenu.menu[i]
             item.isChecked = exactMatch && item.itemId == step
@@ -461,5 +461,6 @@ class PlayerMenus(
         private const val SPEED_MENU_STEP_SIZE = 0.25f
         private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
         private const val SPEED_MENU_STEP_MAX = 12 // → 3x
+        private const val SPEED_MATCH_TOLERANCE = 0.01f
     }
 }

@@ -39,7 +39,6 @@ import org.jellyfin.sdk.model.api.MediaStream
 import org.jellyfin.sdk.model.api.MediaStreamProtocol
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.PlayMethod
-import org.jellyfin.sdk.model.extensions.inWholeTicks
 import org.jellyfin.sdk.model.extensions.ticks
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import org.koin.core.component.KoinComponent
@@ -170,7 +169,8 @@ class QueueManager(
             localAt >= serverAt -> localDownload.playbackPositionTicks
             else -> item?.userData?.playbackPositionTicks
         } ?: 0L
-        return ticks.ticks.takeUnless { ticks > (item?.runTimeTicks ?: Long.MAX_VALUE) * NEAR_END_RATIO } ?: Duration.ZERO
+        val nearEndTicks = (item?.runTimeTicks ?: Long.MAX_VALUE) * NEAR_END_RATIO
+        return ticks.ticks.takeUnless { ticks > nearEndTicks } ?: Duration.ZERO
     }
 
     /**

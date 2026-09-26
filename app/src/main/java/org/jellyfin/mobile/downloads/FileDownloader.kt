@@ -139,4 +139,6 @@ class FileDownloader(
     }
 }
 
-private class ResumeRejectedException(response: Response) : IOException("Server rejected resuming the download: $response")
+private class ResumeRejectedException(response: Response) : IOException(
+    "Server rejected resuming the download: $response",
+)

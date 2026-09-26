@@ -128,6 +128,13 @@ object Constants {
     const val HOLD_SPEEDUP_MULTIPLIER = 3f
     const val ZOOM_SCALE_BASE = 1f
     const val ZOOM_SCALE_THRESHOLD = 0.01f
+    const val HOLD_SPEED_LOCK_DISTANCE_DP = 100 // slide down this far to lock the speed
+    const val HOLD_SPEED_LOCK_HINT_DISTANCE_DP = 40 // slide down this far to show the lock indicator
+    const val HOLD_SPEED_MIN = 1f
+    const val HOLD_SPEED_MAX = 3f
+    const val HOLD_SPEED_STEPS_PER_UNIT = 10f // round the slide speed to 0.1x steps
+    const val HOLD_SPEED_FULL_WIDTH_DELTA = 2f // speed change for a slide across the full screen width
+    const val GESTURE_LOCK_INDICATOR_OFFSET_RATIO = 1.5f // indicator height multiples above the finger
     val ASPECT_RATIO_16_9 = Rational(16, 9)
     val PIP_MIN_RATIONAL = Rational(100, 239)
     val PIP_MAX_RATIONAL = Rational(239, 100)

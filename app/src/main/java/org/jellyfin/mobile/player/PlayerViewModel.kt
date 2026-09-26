@@ -463,7 +463,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         val mediaSource = mediaSourceOrNull ?: return
         val playbackPosition = currentPosition.milliseconds
         // Downloads keep their own resume position so offline playback can resume too
-        if (mediaSource is LocalJellyfinMediaSource) saveLocalPlaybackPosition(mediaSource, playbackPosition.inWholeTicks)
+        if (mediaSource is LocalJellyfinMediaSource) {
+            saveLocalPlaybackPosition(mediaSource, playbackPosition.inWholeTicks)
+        }
         if (!mediaSource.canReportToServer()) return
         if (playbackState != Player.STATE_ENDED) {
             val stream = AudioManager.STREAM_MUSIC

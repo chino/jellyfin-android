@@ -470,8 +470,8 @@ class PlayerGestureHelper(
         val deltaY = event.y - speedUpStartY
 
         // Calculate lock: slide down threshold
-        val lockThreshold = playerView.resources.dip(100)
-        val visibilityThreshold = playerView.resources.dip(40)
+        val lockThreshold = playerView.resources.dip(Constants.HOLD_SPEED_LOCK_DISTANCE_DP)
+        val visibilityThreshold = playerView.resources.dip(Constants.HOLD_SPEED_LOCK_HINT_DISTANCE_DP)
         val nearLockZone = deltaY > visibilityThreshold
         isSpeedLocked = appPreferences.exoPlayerEnableSpeedLock && deltaY > lockThreshold
 
@@ -487,9 +487,10 @@ class PlayerGestureHelper(
             // Range: 1.0x to 3.0x. Sensitivity: full screen width for +/- 2.0x
             val screenWidth = playerView.width.toFloat()
             val baseSpeed = appPreferences.exoPlayerHoldSpeedMultiplier
-            val speedDelta = (deltaX / screenWidth) * 2.0f
-            val targetSpeed = (baseSpeed + speedDelta).coerceIn(1.0f, 3.0f)
-            speedToReport = (targetSpeed * 10).roundToInt() / 10f
+            val speedDelta = (deltaX / screenWidth) * Constants.HOLD_SPEED_FULL_WIDTH_DELTA
+            val targetSpeed = (baseSpeed + speedDelta).coerceIn(Constants.HOLD_SPEED_MIN, Constants.HOLD_SPEED_MAX)
+            speedToReport = (targetSpeed * Constants.HOLD_SPEED_STEPS_PER_UNIT).roundToInt() /
+                Constants.HOLD_SPEED_STEPS_PER_UNIT
         }
 
         fragment.onUpdatePressSpeed(speedToReport, isSpeedLocked)

@@ -94,6 +94,7 @@ abstract class JellyfinDatabase : RoomDatabase() {
     class MigrateV5 : AutoMigrationSpec
 
     companion object {
+        @Suppress("MagicNumber")
         val MIGRATION_5_6 = object : Migration(5, 6) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE `download` ADD COLUMN `playback_position_ticks` INTEGER")
