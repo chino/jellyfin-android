@@ -71,6 +71,7 @@
     <string name="player_error_network_failure">Unable to load media info from server</string>
     <string name="player_error_unsupported_content">Media cannot be played by this device</string>
     <string name="player_error_unspecific_exception">Something went wrong with the player</string>
+    <string name="player_speed_indicator_simple">%1$sx</string>
     <string name="playback_info_play_method">Play method: %s</string>
     <string name="playback_info_transcoding">Transcoding: %b</string>
     <string name="playback_info_video_streams">Video streams</string>
