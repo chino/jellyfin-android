@@ -332,6 +332,12 @@ fun DownloadItem(
                         }
                     }
                 }
+                download.status == DownloadStatus.ERROR -> Text(
+                    text = stringResource(R.string.download_failed),
+                    color = MaterialTheme.colors.error,
+                    overflow = TextOverflow.Ellipsis,
+                    maxLines = 1,
+                )
                 isVerified -> Text(
                     text = Formatter.formatShortFileSize(context, files.sumOf { it.size }),
                     overflow = TextOverflow.Ellipsis,
