@@ -18,6 +18,7 @@ import org.jellyfin.mobile.data.entity.DownloadFiles
 import org.jellyfin.mobile.events.ActivityEvent
 import org.jellyfin.mobile.events.ActivityEventHandler
 import org.jellyfin.mobile.player.interaction.PlayOptions
+import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.MediaType
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
@@ -41,8 +42,11 @@ class DownloadsViewModel : ViewModel(), KoinComponent {
     val storageLocationAccessible = _storageLocationAccessible.asStateFlow()
 
     fun openDownload(download: DownloadEntity) {
-        when (download.item.mediaType) {
-            MediaType.VIDEO -> {
+        // Videos and audiobooks play in the integrated player, everything else opens in another app
+        val playsNatively = download.item.mediaType == MediaType.VIDEO ||
+            download.item.type == BaseItemKind.AUDIO_BOOK
+        when {
+            playsNatively -> {
                 val playOptions = PlayOptions(
                     ids = listOf(download.itemId),
                     mediaSourceId = download.itemId.toString(),
@@ -55,10 +59,7 @@ class DownloadsViewModel : ViewModel(), KoinComponent {
                 activityEventHandler.emit(ActivityEvent.LaunchNativePlayer(playOptions))
             }
 
-            MediaType.AUDIO,
-            MediaType.PHOTO,
-            MediaType.BOOK,
-            MediaType.UNKNOWN -> {
+            else -> {
                 viewModelScope.launch {
                     withContext(Dispatchers.IO) {
                         val storageLocation = storageManager.getStorageLocation()

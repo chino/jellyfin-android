@@ -448,11 +448,13 @@ class QueueManager(
             }
             PlayMethod.TRANSCODE -> {
                 val transcodingPath = requireNotNull(sourceInfo.transcodingUrl) { "Missing transcode URL" }
-                val protocol = sourceInfo.transcodingSubProtocol
-                require(protocol == MediaStreamProtocol.HLS) { "Unsupported transcode protocol '$protocol'" }
                 val transcodingUrl = apiClient.createUrl(transcodingPath)
-
-                transcodingUrl to MimeTypes.APPLICATION_M3U8
+                when (val protocol = sourceInfo.transcodingSubProtocol) {
+                    MediaStreamProtocol.HLS -> transcodingUrl to MimeTypes.APPLICATION_M3U8
+                    // Audio is transcoded to a progressive stream
+                    MediaStreamProtocol.HTTP -> transcodingUrl to null
+                    else -> throw IllegalArgumentException("Unsupported transcode protocol '$protocol'")
+                }
             }
         }
 

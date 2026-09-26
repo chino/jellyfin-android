@@ -46,7 +46,7 @@ export class ExoPlayerPlugin {
     queueNext(options) {}
 
     canPlayMediaType(mediaType) {
-        return mediaType === 'Video';
+        return mediaType === 'Video' || mediaType === 'Audio';
     }
 
     canQueueMediaType(mediaType) {
@@ -54,8 +54,14 @@ export class ExoPlayerPlugin {
     }
 
     canPlayItem(item, playOptions) {
+        // Audiobooks play in the native player too; other audio stays in the web player
+        const isAudiobook = item.Type === 'AudioBook';
+        if (item.MediaType === 'Audio' && !isAudiobook) {
+            return false;
+        }
+
         return this._nativePlayer.isEnabled() &&
-            playOptions.fullscreen &&
+            (playOptions.fullscreen || isAudiobook) &&
             !this.playbackManager.syncPlayEnabled;
     }
 
@@ -179,7 +185,9 @@ export class ExoPlayerPlugin {
             DirectPlayProfiles: [{Type: 'Video'}, {Type: 'Audio'}],
             CodecProfiles: [],
             SubtitleProfiles: [],
-            TranscodingProfiles: []
+            // jellyfin-web builds a stream url for audio items before handing them to a player,
+            // which needs an audio transcoding profile. The native player resolves its own stream.
+            TranscodingProfiles: [{Type: 'Audio', Context: 'Streaming', Container: 'mp3', AudioCodec: 'mp3', Protocol: 'http'}]
         };
     }
 }

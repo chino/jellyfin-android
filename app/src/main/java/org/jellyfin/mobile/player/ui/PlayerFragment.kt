@@ -133,6 +133,13 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
                 requireActivity().requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
             }
 
+            // Audiobooks show their cover and keep the controls on screen
+            playerView.artworkDisplayMode = when {
+                mediaSource.isAudiobook -> PlayerView.ARTWORK_DISPLAY_MODE_FIT
+                else -> PlayerView.ARTWORK_DISPLAY_MODE_OFF
+            }
+            suppressControllerAutoHide(mediaSource.isAudiobook)
+
             // Update title and player menus
             toolbar.title = mediaSource.getName(requireContext())
             playerMenus?.onQueueItemChanged(mediaSource, viewModel.queueManager.hasNext())
@@ -300,7 +307,8 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
      * If true, the player controls will show indefinitely
      */
     fun suppressControllerAutoHide(suppress: Boolean) {
-        playerView.controllerShowTimeoutMs = if (suppress) -1 else DEFAULT_CONTROLS_TIMEOUT_MS
+        val keepVisible = suppress || viewModel.mediaSourceOrNull?.isAudiobook == true
+        playerView.controllerShowTimeoutMs = if (keepVisible) -1 else DEFAULT_CONTROLS_TIMEOUT_MS
     }
 
     fun isLandscape(configuration: Configuration = resources.configuration) =
@@ -420,7 +428,8 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     }
 
     fun onUserLeaveHint() {
-        if (AndroidVersion.isAtLeastN && viewModel.playerOrNull != null) {
+        val isAudiobook = viewModel.mediaSourceOrNull?.isAudiobook == true
+        if (AndroidVersion.isAtLeastN && viewModel.playerOrNull != null && !isAudiobook) {
             requireActivity().enterPictureInPicture()
         }
     }

@@ -155,6 +155,18 @@ class DeviceProfileBuilder(
             }
         }
 
+        // Audiobooks and music in MP4 audio containers are reported by the server as m4b/m4a, not mp4
+        val mp4AudioCodecs = supportedAudioCodecs[SUPPORTED_CONTAINER_FORMATS.indexOf("mp4")]
+        if (mp4AudioCodecs.isNotEmpty()) {
+            directPlayProfiles.add(
+                DirectPlayProfile(
+                    type = DlnaProfileType.AUDIO,
+                    container = "m4a,m4b",
+                    audioCodec = mp4AudioCodecs.joinToString(","),
+                ),
+            )
+        }
+
         val subtitleProfiles = when {
             appPreferences.exoPlayerDirectPlayAss -> {
                 getSubtitleProfiles(EXO_EMBEDDED_SUBTITLES + SUBTITLES_SSA, EXO_EXTERNAL_SUBTITLES + SUBTITLES_SSA)

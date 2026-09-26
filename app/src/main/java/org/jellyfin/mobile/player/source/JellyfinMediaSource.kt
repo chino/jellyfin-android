@@ -24,6 +24,8 @@ sealed class JellyfinMediaSource(
 ) {
     val id: String = requireNotNull(sourceInfo.id) { "Media source has no id" }
 
+    val isAudiobook: Boolean = item?.type == BaseItemKind.AUDIO_BOOK
+
     abstract val playMethod: PlayMethod
 
     var startTime: Duration = playbackDetails?.startTime ?: Duration.ZERO

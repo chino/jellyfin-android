@@ -11,7 +11,9 @@ class PlayerLifecycleObserver(private val viewModel: PlayerViewModel) : DefaultL
     }
 
     override fun onStop(owner: LifecycleOwner) {
-        if (!viewModel.notificationHelper.allowBackgroundAudio) {
+        // Audiobooks always keep playing in the background
+        val isAudiobook = viewModel.mediaSourceOrNull?.isAudiobook == true
+        if (!viewModel.notificationHelper.allowBackgroundAudio && !isAudiobook) {
             viewModel.pause()
         }
     }
