@@ -11,8 +11,11 @@ import androidx.media3.exoplayer.source.MediaSource
 import androidx.media3.exoplayer.source.MergingMediaSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jellyfin.mobile.app.AppPreferences
+import org.jellyfin.mobile.app.StorageManager
 import org.jellyfin.mobile.data.dao.DownloadDao
 import org.jellyfin.mobile.data.entity.DownloadEntity
+import org.jellyfin.mobile.data.entity.DownloadFiles
 import org.jellyfin.mobile.downloads.DownloadFileType
 import org.jellyfin.mobile.player.PlayerException
 import org.jellyfin.mobile.player.PlayerViewModel
@@ -55,6 +58,8 @@ class QueueManager(
     private val mediaSourceResolver: MediaSourceResolver by inject()
     private val deviceProfileBuilder: DeviceProfileBuilder by inject()
     private val downloadDao: DownloadDao by inject()
+    private val storageManager: StorageManager by inject()
+    private val appPreferences: AppPreferences by inject()
     private val deviceProfile = deviceProfileBuilder.getDeviceProfile()
 
     private var currentQueue: List<UUID> = emptyList()
@@ -204,6 +209,27 @@ class QueueManager(
         enableDirectStream: Boolean? = null,
     ): PlayerException? {
         val bestStartTime = resolveRequestedStartTime(itemId, startTime)
+
+        // Prefer a verified local download of this item over streaming it
+        if (appPreferences.exoPlayerSmartLocalPlayback) {
+            val download = withContext(Dispatchers.IO) { downloadDao.getDownloadByItemId(itemId) }
+            if (download != null) {
+                val files = withContext(Dispatchers.IO) { downloadDao.getFiles(download.id) }
+                if (storageManager.verify(DownloadFiles(download, files))) {
+                    Timber.d("Playing local download of %s instead of streaming", itemId)
+                    val localError = startDownloadPlayback(
+                        itemId = itemId,
+                        // The web chose this start; null there means "from the beginning"
+                        startTime = bestStartTime ?: Duration.ZERO,
+                        audioStreamIndex = audioStreamIndex,
+                        subtitleStreamIndex = subtitleStreamIndex,
+                        playWhenReady = playWhenReady,
+                    ) ?: return null
+                    // Fall back to streaming if the local file can't be played
+                    Timber.w(localError, "Local playback of %s failed, streaming instead", itemId)
+                }
+            }
+        }
 
         mediaSourceResolver.resolveMediaSource(
             itemId = itemId,
