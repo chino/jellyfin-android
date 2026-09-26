@@ -27,6 +27,7 @@ import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 class PlayerGestureHelper(
     private val fragment: PlayerFragment,
@@ -80,6 +81,10 @@ class PlayerGestureHelper(
      * Tracks whether a horizontal swipe seek gesture is in progress.
      */
     private var isHorizontalSeeking = false
+    private var speedUpStartX = 0f
+    private var speedUpStartY = 0f
+    private var isSpeedLocked = false
+    private var isSpeedFrozen = false
 
     /**
      * Tracks accumulated seek time during horizontal swipe (in milliseconds).
@@ -177,6 +182,11 @@ class PlayerGestureHelper(
                 if (!appPreferences.exoPlayerAllowPressSpeedUp) {
                     return
                 }
+
+                speedUpStartX = e.x
+                speedUpStartY = e.y
+                isSpeedLocked = false
+                isSpeedFrozen = false
 
                 with(fragment) {
                     isOnPressingSpeedUp = true
@@ -396,7 +406,12 @@ class PlayerGestureHelper(
         playerView.setOnTouchListener { _, event ->
             if (playerView.useController) {
                 when (event.pointerCount) {
-                    1 -> gestureDetector.onTouchEvent(event)
+                    1 -> {
+                        gestureDetector.onTouchEvent(event)
+                        if (isOnPressingSpeedUp) {
+                            handleSpeedUpMove(event)
+                        }
+                    }
                     2 -> zoomGestureDetector.onTouchEvent(event)
                 }
             } else {
@@ -405,8 +420,9 @@ class PlayerGestureHelper(
             if (event.action == MotionEvent.ACTION_UP || event.action == MotionEvent.ACTION_CANCEL) {
                 if (isOnPressingSpeedUp) {
                     isOnPressingSpeedUp = false
-                    with(fragment) {
-                        onPressSpeedUp(false)
+                    fragment.updateGestureLockIndicator(x = 0f, y = 0f, isLocked = false, visible = false)
+                    if (!isSpeedLocked || event.action == MotionEvent.ACTION_CANCEL) {
+                        fragment.onPressSpeedUp(false)
                     }
                 }
 
@@ -445,6 +461,40 @@ class PlayerGestureHelper(
 
     fun handleConfiguration(newConfig: Configuration) {
         updateZoomMode(fragment.isLandscape(newConfig) && isZoomEnabled)
+    }
+
+    private fun handleSpeedUpMove(event: MotionEvent) {
+        if (event.action != MotionEvent.ACTION_MOVE) return
+
+        val deltaX = event.x - speedUpStartX
+        val deltaY = event.y - speedUpStartY
+
+        // Calculate lock: slide down threshold
+        val lockThreshold = playerView.resources.dip(Constants.HOLD_SPEED_LOCK_DISTANCE_DP)
+        val visibilityThreshold = playerView.resources.dip(Constants.HOLD_SPEED_LOCK_HINT_DISTANCE_DP)
+        val nearLockZone = deltaY > visibilityThreshold
+        isSpeedLocked = appPreferences.exoPlayerEnableSpeedLock && deltaY > lockThreshold
+
+        if (nearLockZone) {
+            isSpeedFrozen = true
+        }
+
+        val speedToReport: Float
+        if (isSpeedFrozen) {
+            speedToReport = fragment.viewModel.playerOrNull?.playbackParameters?.speed ?: 1.0f
+        } else {
+            // Calculate speed relative to configured multiplier
+            // Range: 1.0x to 3.0x. Sensitivity: full screen width for +/- 2.0x
+            val screenWidth = playerView.width.toFloat()
+            val baseSpeed = appPreferences.exoPlayerHoldSpeedMultiplier
+            val speedDelta = (deltaX / screenWidth) * Constants.HOLD_SPEED_FULL_WIDTH_DELTA
+            val targetSpeed = (baseSpeed + speedDelta).coerceIn(Constants.HOLD_SPEED_MIN, Constants.HOLD_SPEED_MAX)
+            speedToReport = (targetSpeed * Constants.HOLD_SPEED_STEPS_PER_UNIT).roundToInt() /
+                Constants.HOLD_SPEED_STEPS_PER_UNIT
+        }
+
+        fragment.onUpdatePressSpeed(speedToReport, isSpeedLocked)
+        fragment.updateGestureLockIndicator(event.x, event.y, isSpeedLocked, visible = nearLockZone)
     }
 
     private fun updateZoomMode(enabled: Boolean) {
