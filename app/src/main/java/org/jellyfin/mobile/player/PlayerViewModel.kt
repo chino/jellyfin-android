@@ -6,6 +6,7 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.session.MediaSession
 import android.media.session.PlaybackState
+import android.os.SystemClock
 import androidx.core.content.getSystemService
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
@@ -33,6 +34,8 @@ import io.github.peerless2012.ass.media.factory.AssRenderersFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -41,6 +44,7 @@ import org.jellyfin.mobile.BuildConfig
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.app.PLAYER_EVENT_CHANNEL
+import org.jellyfin.mobile.data.dao.DownloadDao
 import org.jellyfin.mobile.player.interaction.PlayerEvent
 import org.jellyfin.mobile.player.interaction.PlayerLifecycleObserver
 import org.jellyfin.mobile.player.interaction.PlayerMediaSessionCallback
@@ -49,6 +53,7 @@ import org.jellyfin.mobile.player.mediasegments.MediaSegmentAction
 import org.jellyfin.mobile.player.mediasegments.MediaSegmentRepository
 import org.jellyfin.mobile.player.queue.QueueManager
 import org.jellyfin.mobile.player.source.JellyfinMediaSource
+import org.jellyfin.mobile.player.source.LocalJellyfinMediaSource
 import org.jellyfin.mobile.player.source.RemoteJellyfinMediaSource
 import org.jellyfin.mobile.player.ui.DecoderType
 import org.jellyfin.mobile.player.ui.DisplayPreferences
@@ -97,6 +102,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
+/** How long progress reports for a download pause after the server couldn't be reached. */
+private const val LOCAL_REPORT_RETRY_MS = 60_000L
+
 @Suppress("TooManyFunctions")
 class PlayerViewModel(application: Application) : AndroidViewModel(application), KoinComponent, Player.Listener {
     private val apiClient: ApiClient = get()
@@ -104,6 +112,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private val playStateApi: PlayStateApi = apiClient.playStateApi
     private val hlsSegmentApi: HlsSegmentApi = apiClient.hlsSegmentApi
     private val userApi: UserApi = apiClient.userApi
+    private val downloadDao: DownloadDao by inject()
 
     private val appPreferences: AppPreferences by inject()
     private val lifecycleObserver = PlayerLifecycleObserver(this)
@@ -148,6 +157,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private var chapterMarkingUpdateJob: Job? = null
     private var skipMediaSegmentUpdateJob: Job? = null
     private var fallbackRetryJob: Job? = null
+
+    /**
+     * After a failed progress report for a download (most likely offline), reports pause until
+     * this time (elapsed realtime, ms) instead of failing every few seconds, then try again.
+     */
+    private var localReportRetryAt = 0L
 
     /**
      * Returns the current ExoPlayer instance or null
@@ -309,6 +324,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun load(jellyfinMediaSource: JellyfinMediaSource, exoMediaSource: MediaSource, playWhenReady: Boolean) {
+        localReportRetryAt = 0L
         val player = playerOrNull ?: return
 
         player.setMediaSource(exoMediaSource)
@@ -444,8 +460,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     private suspend fun Player.reportPlaybackState() {
-        val mediaSource = mediaSourceOrNull as? RemoteJellyfinMediaSource ?: return
+        val mediaSource = mediaSourceOrNull ?: return
         val playbackPosition = currentPosition.milliseconds
+        // Downloads keep their own resume position so offline playback can resume too
+        if (mediaSource is LocalJellyfinMediaSource) saveLocalPlaybackPosition(mediaSource, playbackPosition.inWholeTicks)
+        if (!mediaSource.canReportToServer()) return
         if (playbackState != Player.STATE_ENDED) {
             val stream = AudioManager.STREAM_MUSIC
             val volumeRange = audioManager.getVolumeRange(stream)
@@ -458,7 +477,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             itemId = mediaSource.itemId,
                             playMethod = mediaSource.playMethod,
                             playSessionId = mediaSource.playSessionId,
-                            liveStreamId = mediaSource.liveStreamId,
+                            liveStreamId = (mediaSource as? RemoteJellyfinMediaSource)?.liveStreamId,
                             audioStreamIndex = mediaSource.selectedAudioStream?.index,
                             subtitleStreamIndex = mediaSource.selectedSubtitleStream?.index,
                             isPaused = isPaused,
@@ -472,13 +491,19 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                     )
                 }
             } catch (e: ApiClientException) {
-                Timber.e(e, "Failed to report playback progress")
+                if (mediaSource is LocalJellyfinMediaSource) {
+                    // Most likely offline - keep saving locally and try the server again in a minute
+                    localReportRetryAt = SystemClock.elapsedRealtime() + LOCAL_REPORT_RETRY_MS
+                    Timber.i(e, "Server unreachable, retrying progress reports for this download later")
+                } else {
+                    Timber.e(e, "Failed to report playback progress")
+                }
             }
         }
     }
 
     private fun reportPlaybackStop() {
-        val mediaSource = mediaSourceOrNull as? RemoteJellyfinMediaSource ?: return
+        val mediaSource = mediaSourceOrNull ?: return
         val player = playerOrNull ?: return
         val hasFinished = player.playbackState == Player.STATE_ENDED
         val lastPositionTicks = when {
@@ -486,8 +511,11 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             else -> player.currentPosition.milliseconds.inWholeTicks
         }
 
-        // viewModelScope may already be cancelled at this point, so we need to fallback
-        CoroutineScope(Dispatchers.Main).launch {
+        // viewModelScope may already be cancelled at this point, so we need to fallback.
+        // NonCancellable so the final position is saved even while the player is torn down.
+        CoroutineScope(Dispatchers.Main + SupervisorJob()).launch(NonCancellable) {
+            if (mediaSource is LocalJellyfinMediaSource) saveLocalPlaybackPosition(mediaSource, lastPositionTicks)
+            // The final position is always offered to the server, even while backing off
             try {
                 // Report stopped playback
                 withContext(Dispatchers.IO) {
@@ -496,7 +524,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                             itemId = mediaSource.itemId,
                             positionTicks = lastPositionTicks,
                             playSessionId = mediaSource.playSessionId,
-                            liveStreamId = mediaSource.liveStreamId,
+                            liveStreamId = (mediaSource as? RemoteJellyfinMediaSource)?.liveStreamId,
                             failed = false,
                         ),
                     )
@@ -510,10 +538,23 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 }
 
                 // Stop active encoding if transcoding
-                stopTranscoding(mediaSource)
+                if (mediaSource is RemoteJellyfinMediaSource) stopTranscoding(mediaSource)
             } catch (e: ApiClientException) {
                 Timber.e(e, "Failed to report playback stop")
             }
+        }
+    }
+
+    /**
+     * Local downloads report to the server too when it is reachable, so the server's
+     * resume point stays in sync with offline playback.
+     */
+    private fun JellyfinMediaSource.canReportToServer(): Boolean =
+        this is RemoteJellyfinMediaSource || SystemClock.elapsedRealtime() >= localReportRetryAt
+
+    private suspend fun saveLocalPlaybackPosition(mediaSource: LocalJellyfinMediaSource, positionTicks: Long) {
+        withContext(Dispatchers.IO) {
+            downloadDao.updatePlaybackPosition(mediaSource.itemId, positionTicks, System.currentTimeMillis())
         }
     }
 
