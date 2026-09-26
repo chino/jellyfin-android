@@ -453,6 +453,6 @@ class PlayerMenus(
 
         private const val SPEED_MENU_STEP_SIZE = 0.25f
         private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
-        private const val SPEED_MENU_STEP_MAX = 8 // → 2x
+        private const val SPEED_MENU_STEP_MAX = 12 // → 3x
     }
 }
