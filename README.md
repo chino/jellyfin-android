@@ -3,6 +3,18 @@
 
 ---
 
+## Changes in this fork
+
+- **Offline resume for downloads** — saves your position while playing a download and syncs it to the server when online.
+- **Prefer local downloads** — plays the downloaded file instead of streaming when one exists, with a LOCAL badge.
+- **Speed button shows the current speed** — and the speed menu goes up to 3x.
+- **Hold-to-speed-up settings** — choose the hold speed; slide while holding to change or lock it.
+- **Grouped downloads list** — downloads sorted into collapsible sections by type.
+- **Live download progress** — size and percentage for active downloads, and failed downloads are marked.
+- **Download resume fixes** — interrupted downloads continue from the partial file.
+
+---
+
 <p align="center">
 <img alt="Logo Banner" src="https://raw.githubusercontent.com/jellyfin/jellyfin-ux/master/branding/SVG/banner-logo-solid.svg?sanitize=true"/>
 <br/>
