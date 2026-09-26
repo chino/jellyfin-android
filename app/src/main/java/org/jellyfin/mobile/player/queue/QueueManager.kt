@@ -12,6 +12,7 @@ import androidx.media3.exoplayer.source.MergingMediaSource
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jellyfin.mobile.data.dao.DownloadDao
+import org.jellyfin.mobile.data.entity.DownloadEntity
 import org.jellyfin.mobile.downloads.DownloadFileType
 import org.jellyfin.mobile.player.PlayerException
 import org.jellyfin.mobile.player.PlayerViewModel
@@ -26,18 +27,23 @@ import org.jellyfin.mobile.player.source.PlaybackDetails
 import org.jellyfin.mobile.player.source.RemoteJellyfinMediaSource
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.systemApi
+import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.api.client.extensions.videosApi
 import org.jellyfin.sdk.api.operations.VideosApi
+import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.MediaProtocol
 import org.jellyfin.sdk.model.api.MediaStream
 import org.jellyfin.sdk.model.api.MediaStreamProtocol
 import org.jellyfin.sdk.model.api.MediaStreamType
 import org.jellyfin.sdk.model.api.PlayMethod
+import org.jellyfin.sdk.model.extensions.inWholeTicks
+import org.jellyfin.sdk.model.extensions.ticks
 import org.jellyfin.sdk.model.serializer.toUUIDOrNull
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.get
 import org.koin.core.component.inject
 import timber.log.Timber
+import java.time.ZoneOffset
 import java.util.UUID
 import kotlin.time.Duration
 
@@ -127,15 +133,17 @@ class QueueManager(
 
         val mainFile = files.find { it.type == DownloadFileType.ITEM } ?: return PlayerException.NetworkFailure()
 
+        val bestStartTime = startTime ?: newestSavedStartTime(download, download.item)
+
         val mediaSource = LocalJellyfinMediaSource(
             itemId = download.itemId,
             item = download.item,
             sourceInfo = download.item.mediaSources!!.first(),
             playSessionId = download.id.toString(),
-            playbackDetails = PlaybackDetails(startTime, audioStreamIndex, subtitleStreamIndex),
+            playbackDetails = PlaybackDetails(bestStartTime, audioStreamIndex, subtitleStreamIndex),
             remoteFileUri = mainFile.uri,
         )
-        startTime?.let { duration -> mediaSource.startTime = duration }
+        mediaSource.startTime = bestStartTime
         audioStreamIndex?.let { index -> mediaSource.selectAudioStream(mediaSource.audioStreams[index]) }
         subtitleStreamIndex?.let { index -> mediaSource.selectSubtitleStream(mediaSource.subtitleStreams[index]) }
 
@@ -145,6 +153,40 @@ class QueueManager(
         viewModel.load(mediaSource, prepareStreams(mediaSource), playWhenReady)
 
         return null
+    }
+
+    /**
+     * Where to start a download opened from the downloads screen: the most recently saved of
+     * the position stored locally and the server's position at download time.
+     * A position near the end means the item was finished, so it starts over.
+     */
+    private fun newestSavedStartTime(localDownload: DownloadEntity, item: BaseItemDto?): Duration {
+        val localAt = localDownload.lastPlayedAt ?: 0L
+        val serverAt = item?.userData?.lastPlayedDate?.toInstant(ZoneOffset.UTC)?.toEpochMilli() ?: 0L
+        val ticks = when {
+            localAt >= serverAt -> localDownload.playbackPositionTicks
+            else -> item?.userData?.playbackPositionTicks
+        } ?: 0L
+        return ticks.ticks.takeUnless { ticks > (item?.runTimeTicks ?: Long.MAX_VALUE) * NEAR_END_RATIO } ?: Duration.ZERO
+    }
+
+    /**
+     * Where to start when the web UI asked to play [itemId] at [requested] (null = from the beginning).
+     * The web's choice wins, except that a resume uses the position saved on this device if that
+     * is more recent than the server's - offline progress the server hasn't seen yet.
+     */
+    private suspend fun resolveRequestedStartTime(itemId: UUID, requested: Duration?): Duration? {
+        if (requested == null) return null
+        val localDownload = withContext(Dispatchers.IO) { downloadDao.getDownloadByItemId(itemId) } ?: return requested
+        val localAt = localDownload.lastPlayedAt ?: return requested
+        val localTicks = localDownload.playbackPositionTicks ?: return requested
+        val serverAt = withContext(Dispatchers.IO) {
+            runCatching {
+                val item by apiClient.userLibraryApi.getItem(itemId = itemId)
+                item.userData?.lastPlayedDate?.toInstant(ZoneOffset.UTC)?.toEpochMilli()
+            }.getOrNull()
+        } ?: 0L
+        return if (localAt > serverAt) localTicks.ticks else requested
     }
 
     /**
@@ -163,12 +205,14 @@ class QueueManager(
         enableDirectPlay: Boolean? = null,
         enableDirectStream: Boolean? = null,
     ): PlayerException? {
+        val bestStartTime = resolveRequestedStartTime(itemId, startTime)
+
         mediaSourceResolver.resolveMediaSource(
             itemId = itemId,
             mediaSourceId = mediaSourceId,
             deviceProfile = deviceProfile,
             maxStreamingBitrate = maxStreamingBitrate,
-            startTime = startTime,
+            startTime = bestStartTime,
             audioStreamIndex = audioStreamIndex,
             subtitleStreamIndex = subtitleStreamIndex,
             enableDirectPlay = enableDirectPlay,
@@ -502,6 +546,8 @@ class QueueManager(
     }
 
     companion object {
+        /** Past this share of the runtime, a saved position counts as finished. */
+        private const val NEAR_END_RATIO = 0.95
         private const val MAX_PLAYBACK_RETRIES = 3
         private const val PLAYBACK_RETRY_RESET_MS = 30_000L
     }
