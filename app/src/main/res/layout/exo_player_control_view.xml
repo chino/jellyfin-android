@@ -161,6 +161,17 @@
             android:textColor="?android:textColorSecondary"
             android:textSize="13sp"
             tools:text="12:04 left in chapter · 7:38:10 left in book" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/audiobook_sleep_timer"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textColor="?colorAccent"
+            android:textSize="13sp"
+            android:visibility="gone"
+            tools:text="Sleep in 14:59"
+            tools:visibility="visible" />
     </LinearLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -312,6 +323,20 @@
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/info_button"
+        tools:visibility="visible" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/sleep_timer_button"
+        android:layout_width="@dimen/exo_bottom_controls_size"
+        android:layout_height="@dimen/exo_bottom_controls_size"
+        android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
+        android:background="@drawable/ripple_background_circular"
+        android:contentDescription="@string/sleep_timer"
+        android:padding="@dimen/exo_bottom_controls_padding"
+        android:src="@drawable/ic_sleep_timer"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/chapters_button"
         tools:visibility="visible" />
 
     <androidx.appcompat.widget.AppCompatImageButton

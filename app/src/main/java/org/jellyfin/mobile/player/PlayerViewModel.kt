@@ -122,6 +122,13 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     val queueManager = QueueManager(this)
     val mediaSourceOrNull: JellyfinMediaSource?
         get() = queueManager.getCurrentMediaSourceOrNull()
+
+    val sleepTimer = SleepTimer(
+        scope = viewModelScope,
+        currentPosition = { playerOrNull?.currentPosition?.milliseconds },
+        chapterStarts = { mediaSourceOrNull?.item?.chapters.orEmpty().map { it.startPositionTicks.ticks }.sorted() },
+        onExpired = { pause() },
+    )
     private val mediaSegmentRepository: MediaSegmentRepository by inject()
 
     // ExoPlayer

@@ -224,7 +224,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
 
         // Create playback menus
         playerMenus = PlayerMenus(this, playerBinding, playerControlsBinding)
-        audiobookChapterHelper = AudiobookChapterHelper(playerControlsBinding) { position ->
+        audiobookChapterHelper = AudiobookChapterHelper(playerControlsBinding, viewModel.sleepTimer) { position ->
             viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds)
         }
         viewModel.queueManager.currentMediaSource.value?.let { audiobookChapterHelper?.onMediaSourceChanged(it) }
