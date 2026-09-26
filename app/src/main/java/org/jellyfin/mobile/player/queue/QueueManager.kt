@@ -144,8 +144,6 @@ class QueueManager(
             remoteFileUri = mainFile.uri,
         )
         mediaSource.startTime = bestStartTime
-        audioStreamIndex?.let { index -> mediaSource.selectAudioStream(mediaSource.audioStreams[index]) }
-        subtitleStreamIndex?.let { index -> mediaSource.selectSubtitleStream(mediaSource.subtitleStreams[index]) }
 
         _currentMediaSource.value = mediaSource
 
