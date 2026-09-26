@@ -178,7 +178,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             multiplierOptions,
         ) {
             titleRes = R.string.pref_exoplayer_hold_speed_multiplier_title
-            initialSelection = "2.0"
+            initialSelection = "3.0"
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER &&
                 appPreferences.exoPlayerAllowPressSpeedUp
         }
