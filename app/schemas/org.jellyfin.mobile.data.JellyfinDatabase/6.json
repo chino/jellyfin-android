@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 6,
-    "identityHash": "be75cac55c6f77ee16e9a09527de0018",
+    "identityHash": "b80fdea75cbef8d357ad53dc5e42ad7c",
     "entities": [
       {
         "tableName": "server",
@@ -113,7 +113,7 @@
       },
       {
         "tableName": "download",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `server_id` INTEGER NOT NULL, `user_id` INTEGER NOT NULL, `item_id` TEXT NOT NULL, `path` TEXT NOT NULL, `item` TEXT NOT NULL, `status` TEXT NOT NULL, `playback_position_ticks` INTEGER, `last_played_at` INTEGER, `created_at` INTEGER NOT NULL, `modified_at` INTEGER NOT NULL, FOREIGN KEY(`server_id`) REFERENCES `server`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`user_id`) REFERENCES `user`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `server_id` INTEGER NOT NULL, `user_id` INTEGER NOT NULL, `item_id` TEXT NOT NULL, `path` TEXT NOT NULL, `item` TEXT NOT NULL, `status` TEXT NOT NULL, `playback_position_ticks` INTEGER, `last_played_at` INTEGER, `position_synced` INTEGER NOT NULL DEFAULT 1, `created_at` INTEGER NOT NULL, `modified_at` INTEGER NOT NULL, FOREIGN KEY(`server_id`) REFERENCES `server`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`user_id`) REFERENCES `user`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -166,6 +166,13 @@
             "fieldPath": "lastPlayedAt",
             "columnName": "last_played_at",
             "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "positionSynced",
+            "columnName": "position_synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "1"
           },
           {
             "fieldPath": "createdAt",
@@ -321,7 +328,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'be75cac55c6f77ee16e9a09527de0018')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b80fdea75cbef8d357ad53dc5e42ad7c')"
     ]
   }
 }
