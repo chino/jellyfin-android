@@ -118,6 +118,51 @@
         app:layout_constraintTop_toTopOf="@id/seek_bar_container"
         tools:text="33:01" />
 
+    <LinearLayout
+        android:id="@+id/audiobook_chapter_panel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/exo_player_controls_display_padding"
+        android:layout_marginEnd="@dimen/exo_player_controls_display_padding"
+        android:layout_marginBottom="8dp"
+        android:orientation="vertical"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/seek_bar_container"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        tools:visibility="visible">
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/audiobook_chapter_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            tools:text="3/21 · Chapter Three" />
+
+        <ProgressBar
+            android:id="@+id/audiobook_chapter_progress"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="4dp"
+            android:layout_marginTop="6dp"
+            android:layout_marginBottom="6dp"
+            android:max="1000"
+            android:progressTint="?colorAccent"
+            tools:progress="400" />
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/audiobook_time_left"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="?android:textColorSecondary"
+            android:textSize="13sp"
+            tools:text="12:04 left in chapter · 7:38:10 left in book" />
+    </LinearLayout>
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/seek_bar_container"
         android:layout_width="0dp"
@@ -254,6 +299,20 @@
         android:src="@drawable/ic_info_white_24dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toEndOf="@id/decoder_button" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/chapters_button"
+        android:layout_width="@dimen/exo_bottom_controls_size"
+        android:layout_height="@dimen/exo_bottom_controls_size"
+        android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
+        android:background="@drawable/ripple_background_circular"
+        android:contentDescription="@string/player_chapters"
+        android:padding="@dimen/exo_bottom_controls_padding"
+        android:src="@drawable/ic_playlist"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/info_button"
+        tools:visibility="visible" />
 
     <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/fullscreen_switcher"

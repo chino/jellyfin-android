@@ -87,6 +87,11 @@
     <string name="external_player_invalid_play_method">Invalid play method.</string>
     <string name="external_player_not_supported_yet">Playback tracking not supported in selected external player yet. Contact developers to try to add support for it.</string>
     <string name="external_player_invalid_player">No valid external player selected. Playback tracking disabled.</string>
+    <string name="player_chapters">Chapters</string>
+    <string name="player_chapter_number">Chapter %1$d</string>
+    <string name="player_chapter_title">%1$d/%2$d · %3$s</string>
+    <string name="player_time_left">%1$s left in chapter · %2$s left in book</string>
+    <string name="player_time_left_at_speed">%1$s left in chapter · %2$s left in book at %3$sx</string>
     <string name="player_local_badge">LOCAL</string>
     <string name="external_player_unknown_error">Unknown error in external player. Playback tracking disabled.</string>
 

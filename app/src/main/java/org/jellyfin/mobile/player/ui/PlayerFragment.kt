@@ -24,7 +24,9 @@ import androidx.core.view.setPadding
 import androidx.core.view.updatePadding
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.Player
 import androidx.media3.ui.PlayerView
 import io.github.peerless2012.ass.media.AssHandler
@@ -58,6 +60,7 @@ import org.jellyfin.sdk.model.api.MediaSegmentDto
 import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.android.ext.android.inject
 import kotlin.math.max
+import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 import androidx.media3.ui.R as Media3R
 
@@ -77,6 +80,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     private val toolbar: Toolbar get() = playerControlsBinding.toolbar
     private val fullscreenSwitcher: ImageButton get() = playerControlsBinding.fullscreenSwitcher
     private var playerMenus: PlayerMenus? = null
+    private var audiobookChapterHelper: AudiobookChapterHelper? = null
 
     private lateinit var playerFullscreenHelper: PlayerFullscreenHelper
     lateinit var playerLockScreenHelper: PlayerLockScreenHelper
@@ -143,6 +147,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             // Update title and player menus
             toolbar.title = mediaSource.getName(requireContext())
             playerMenus?.onQueueItemChanged(mediaSource, viewModel.queueManager.hasNext())
+            audiobookChapterHelper?.onMediaSourceChanged(mediaSource)
         }
 
         // Handle fragment arguments, extract playback options and start playback
@@ -219,6 +224,23 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
 
         // Create playback menus
         playerMenus = PlayerMenus(this, playerBinding, playerControlsBinding)
+        audiobookChapterHelper = AudiobookChapterHelper(playerControlsBinding) { position ->
+            viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds)
+        }
+        viewModel.queueManager.currentMediaSource.value?.let { audiobookChapterHelper?.onMediaSourceChanged(it) }
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                while (true) {
+                    viewModel.playerOrNull?.let { player ->
+                        audiobookChapterHelper?.update(
+                            player.currentPosition.milliseconds,
+                            player.playbackParameters.speed,
+                        )
+                    }
+                    delay(AudiobookChapterHelper.UPDATE_INTERVAL)
+                }
+            }
+        }
 
         // Set controller timeout
         suppressControllerAutoHide(false)
@@ -493,6 +515,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         _playerBinding = null
         _playerControlsBinding = null
         playerMenus = null
+        audiobookChapterHelper = null
     }
 
     override fun onDestroy() {
