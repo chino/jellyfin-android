@@ -14,7 +14,9 @@ import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -31,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.produceState
@@ -55,6 +58,7 @@ import org.jellyfin.mobile.app.StorageManager
 import org.jellyfin.mobile.data.entity.DownloadEntity
 import org.jellyfin.mobile.data.entity.DownloadFiles
 import org.jellyfin.mobile.downloads.DownloadFileType
+import org.jellyfin.mobile.downloads.DownloadProgressTracker
 import org.jellyfin.mobile.downloads.DownloadStatus
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.MediaType
@@ -160,6 +164,8 @@ fun DownloadsList(
 data class DownloadSection(val title: String, val groups: List<DownloadGroup>)
 data class DownloadGroup(val name: String, val items: List<DownloadFiles>)
 
+private const val PERCENT = 100
+
 private val episodeOrder = compareBy<DownloadFiles>(
     { it.download.item.parentIndexNumber ?: 0 },
     { it.download.item.indexNumber ?: 0 },
@@ -223,6 +229,12 @@ fun DownloadItem(
         }
     }
 
+    val activeProgressMap by DownloadProgressTracker.progressMap.collectAsState()
+    val activeProgress = activeProgressMap[download.id]
+    val totalSize = remember(download) {
+        download.item.mediaSources?.firstOrNull()?.size
+    }
+
     val iconRes = remember(download.item) {
         when {
             downloadFiles.isBook() -> R.drawable.ic_audiobooks
@@ -283,16 +295,49 @@ fun DownloadItem(
             }
         },
         secondaryText = {
-            if (download.status == DownloadStatus.DOWNLOADING || download.status == DownloadStatus.QUEUED) {
-                LinearProgressIndicator()
-            } else if (isVerified) {
-                Text(
+            when {
+                download.status == DownloadStatus.QUEUED -> Column {
+                    Text(
+                        text = stringResource(R.string.download_queued),
+                        style = MaterialTheme.typography.caption,
+                        color = MaterialTheme.colors.onSurface.copy(alpha = 0.6f),
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
+                download.status == DownloadStatus.DOWNLOADING -> {
+                    val downloaded = activeProgress?.downloaded ?: 0L
+                    // The main media file's size, falling back to the size reported by the server response
+                    val total = totalSize?.takeIf { it > 0 } ?: activeProgress?.total
+                    val fraction = total?.takeIf { it > 0 }?.let { (downloaded.toFloat() / it).coerceIn(0f, 1f) }
+                    Column {
+                        Text(
+                            text = when {
+                                fraction != null -> stringResource(
+                                    R.string.download_progress_bytes,
+                                    Formatter.formatShortFileSize(context, downloaded),
+                                    Formatter.formatShortFileSize(context, total ?: 0L),
+                                    (fraction * PERCENT).toInt(),
+                                )
+                                else -> stringResource(R.string.download_downloading)
+                            },
+                            style = MaterialTheme.typography.caption,
+                            color = MaterialTheme.colors.primary,
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        if (fraction != null) {
+                            LinearProgressIndicator(progress = fraction, modifier = Modifier.fillMaxWidth())
+                        } else {
+                            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                        }
+                    }
+                }
+                isVerified -> Text(
                     text = Formatter.formatShortFileSize(context, files.sumOf { it.size }),
                     overflow = TextOverflow.Ellipsis,
                     maxLines = 1,
                 )
-            } else {
-                Text(
+                else -> Text(
                     text = stringResource(R.string.download_incomplete),
                     color = Color.Yellow,
                     overflow = TextOverflow.Ellipsis,
@@ -300,6 +345,6 @@ fun DownloadItem(
                 )
             }
         },
-        singleLineSecondaryText = true,
+        singleLineSecondaryText = false,
     )
 }
