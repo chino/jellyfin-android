@@ -42,6 +42,7 @@ object Constants {
     const val PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER = "pref_exoplayer_hold_speed_multiplier"
     const val PREF_EXOPLAYER_ENABLE_SPEED_LOCK = "pref_exoplayer_enable_speed_lock"
     const val PREF_EXOPLAYER_DIRECT_PLAY_ASS = "pref_exoplayer_direct_play_ass"
+    const val PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK = "pref_exoplayer_smart_local_playback"
     const val PREF_EXOPLAYER_NETWORK_BUFFER = "pref_exoplayer_network_buffer"
     const val NETWORK_BUFFER_AUTO = "auto"
     const val NETWORK_BUFFER_LARGE = "large"
