@@ -31,6 +31,7 @@ import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  *  Provides a menu UI for audio, subtitle and video stream selection
@@ -313,6 +314,20 @@ class PlayerMenus(
             }
         }
         setOnDismissListener(this@PlayerMenus)
+    }
+
+    /**
+     * Show the current playback [speed] on the speed button and check the matching menu entry.
+     */
+    fun updateSpeed(speed: Float) {
+        val formattedSpeed = String.format(Locale.US, "%.1f", speed).removeSuffix(".0")
+        (speedButton as? TextView)?.text = context.getString(R.string.player_speed_indicator_simple, formattedSpeed)
+        val step = (speed / SPEED_MENU_STEP_SIZE).toInt()
+        val exactMatch = abs((step * SPEED_MENU_STEP_SIZE) - speed) < 0.01f
+        for (i in 0 until speedMenu.menu.size) {
+            val item = speedMenu.menu[i]
+            item.isChecked = exactMatch && item.itemId == step
+        }
     }
 
     private fun createQualityMenu() = PopupMenu(context, qualityButton).apply {
