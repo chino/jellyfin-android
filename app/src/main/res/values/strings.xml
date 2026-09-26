@@ -176,6 +176,7 @@
     </plurals>
     <string name="download_incomplete">Download incomplete</string>
     <string name="download_queued">Queued</string>
+    <string name="download_failed">Download failed</string>
     <string name="download_downloading">Downloading…</string>
     <string name="download_progress_bytes">%1$s / %2$s (%3$d%%)</string>
     <string name="download_settings_dialog_title">Choose download location</string>
