@@ -350,7 +350,16 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     }
 
     fun onPressSpeedUp(isPressing: Boolean): Boolean {
-        return viewModel.setPressSpeedUp(isPressing, Constants.HOLD_SPEEDUP_MULTIPLIER)
+        // setPressSpeedUp restores the previous speed on release
+        val speed = appPreferences.exoPlayerHoldSpeedMultiplier
+        val success = viewModel.setPressSpeedUp(isPressing, speed)
+        if (success) {
+            playerBinding.speedIndicator.isVisible = isPressing
+            if (isPressing) {
+                playerBinding.speedIndicator.text = getString(R.string.player_speed_indicator, speed.toString(), "")
+            }
+        }
+        return success
     }
 
     fun onDecoderSelected(type: DecoderType) {
