@@ -340,6 +340,20 @@
         tools:visibility="visible" />
 
     <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/bookmarks_button"
+        android:layout_width="@dimen/exo_bottom_controls_size"
+        android:layout_height="@dimen/exo_bottom_controls_size"
+        android:layout_marginBottom="@dimen/exo_bottom_controls_margin"
+        android:background="@drawable/ripple_background_circular"
+        android:contentDescription="@string/bookmarks"
+        android:padding="@dimen/exo_bottom_controls_padding"
+        android:src="@drawable/ic_bookmark"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/sleep_timer_button"
+        tools:visibility="visible" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
         android:id="@+id/fullscreen_switcher"
         android:layout_width="@dimen/exo_bottom_controls_size"
         android:layout_height="@dimen/exo_bottom_controls_size"

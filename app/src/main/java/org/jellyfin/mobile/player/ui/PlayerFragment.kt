@@ -58,6 +58,7 @@ import org.jellyfin.mobile.utils.extensions.keepScreenOn
 import org.jellyfin.mobile.utils.toast
 import org.jellyfin.sdk.model.api.MediaSegmentDto
 import org.jellyfin.sdk.model.api.MediaStream
+import org.koin.android.ext.android.get
 import org.koin.android.ext.android.inject
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -81,6 +82,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
     private val fullscreenSwitcher: ImageButton get() = playerControlsBinding.fullscreenSwitcher
     private var playerMenus: PlayerMenus? = null
     private var audiobookChapterHelper: AudiobookChapterHelper? = null
+    private var audiobookBookmarksHelper: AudiobookBookmarksHelper? = null
 
     private lateinit var playerFullscreenHelper: PlayerFullscreenHelper
     lateinit var playerLockScreenHelper: PlayerLockScreenHelper
@@ -148,6 +150,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             toolbar.title = mediaSource.getName(requireContext())
             playerMenus?.onQueueItemChanged(mediaSource, viewModel.queueManager.hasNext())
             audiobookChapterHelper?.onMediaSourceChanged(mediaSource)
+            audiobookBookmarksHelper?.onMediaSourceChanged(mediaSource)
         }
 
         // Handle fragment arguments, extract playback options and start playback
@@ -227,7 +230,17 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         audiobookChapterHelper = AudiobookChapterHelper(playerControlsBinding, viewModel.sleepTimer) { position ->
             viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds)
         }
-        viewModel.queueManager.currentMediaSource.value?.let { audiobookChapterHelper?.onMediaSourceChanged(it) }
+        audiobookBookmarksHelper = AudiobookBookmarksHelper(
+            binding = playerControlsBinding,
+            audiobookDao = get(),
+            scope = viewLifecycleOwner.lifecycleScope,
+            currentPosition = { viewModel.playerOrNull?.currentPosition?.milliseconds },
+            onSeek = { position -> viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds) },
+        )
+        viewModel.queueManager.currentMediaSource.value?.let { mediaSource ->
+            audiobookChapterHelper?.onMediaSourceChanged(mediaSource)
+            audiobookBookmarksHelper?.onMediaSourceChanged(mediaSource)
+        }
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
                 while (true) {
@@ -516,6 +529,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         _playerControlsBinding = null
         playerMenus = null
         audiobookChapterHelper = null
+        audiobookBookmarksHelper = null
     }
 
     override fun onDestroy() {

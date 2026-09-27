@@ -110,6 +110,12 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     private val hlsSegmentApi: HlsSegmentApi = apiClient.hlsSegmentApi
     private val userApi: UserApi = apiClient.userApi
     private val downloadDao: DownloadDao by inject()
+    private val listeningHistoryRecorder = ListeningHistoryRecorder(
+        scope = viewModelScope,
+        audiobookDao = get(),
+        currentPositionMs = { playerOrNull?.currentPosition },
+        currentAudiobookId = { mediaSourceOrNull?.takeIf { it.isAudiobook }?.itemId?.toString() },
+    )
 
     private val appPreferences: AppPreferences by inject()
     private val lifecycleObserver = PlayerLifecycleObserver(this)
@@ -302,6 +308,7 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
             setHandleAudioBecomingNoisy(true)
         }.build().apply {
             addListener(this@PlayerViewModel)
+            addListener(listeningHistoryRecorder)
             applyDefaultAudioAttributes(C.AUDIO_CONTENT_TYPE_MOVIE)
             if (appPreferences.exoPlayerDirectPlayAss) get<AssHandler>().init(this)
         }
@@ -315,6 +322,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         mediaSession.isActive = false
         mediaSession.release()
         playerOrNull?.run {
+            // Save the listening session in progress before the player goes away
+            listeningHistoryRecorder.finish()
+            removeListener(listeningHistoryRecorder)
             removeListener(this@PlayerViewModel)
             release()
         }

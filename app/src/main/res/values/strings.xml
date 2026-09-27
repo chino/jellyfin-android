@@ -89,6 +89,15 @@
     <string name="external_player_invalid_player">No valid external player selected. Playback tracking disabled.</string>
     <string name="player_chapters">Chapters</string>
     <string name="sleep_timer">Sleep timer</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="bookmark_add">Add bookmark at %1$s</string>
+    <string name="bookmark_note_hint">Note (optional)</string>
+    <string name="bookmark_save">Save</string>
+    <string name="bookmark_delete">Delete a bookmark</string>
+    <string name="listening_history">Listening history</string>
+    <string name="listening_history_close">Close</string>
+    <string name="listening_history_empty">Nothing listened to yet.</string>
+    <string name="listening_session">%1$s · %2$s → %3$s</string>
     <string name="sleep_timer_off">Off</string>
     <string name="sleep_timer_minutes">%1$d minutes</string>
     <string name="sleep_timer_end_of_chapter">End of chapter</string>
