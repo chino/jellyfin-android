@@ -315,6 +315,14 @@ class PlayerMenus(
         setOnDismissListener(this@PlayerMenus)
     }
 
+    /**
+     * Show the current playback [speed] on the speed button, e.g. "1.25x".
+     */
+    fun updateSpeed(speed: Float) {
+        val formattedSpeed = String.format(Locale.US, "%.2f", speed).trimEnd('0').trimEnd('.')
+        (speedButton as? TextView)?.text = context.getString(R.string.player_speed_indicator_simple, formattedSpeed)
+    }
+
     private fun createQualityMenu() = PopupMenu(context, qualityButton).apply {
         setOnMenuItemClickListener { item: MenuItem ->
             val newBitrate = item.itemId.takeUnless { bitrate -> bitrate == 0 }

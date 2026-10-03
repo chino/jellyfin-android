@@ -15,6 +15,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.media3.common.C
 import androidx.media3.common.MimeTypes
 import androidx.media3.common.PlaybackException
+import androidx.media3.common.PlaybackParameters
 import androidx.media3.common.Player
 import androidx.media3.common.util.Clock
 import androidx.media3.exoplayer.DefaultLoadControl
@@ -124,6 +125,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     val player: LiveData<ExoPlayer?> get() = _player
     val playerState: LiveData<Int> get() = _playerState
     val decoderType: LiveData<DecoderType> get() = _decoderType
+
+    private val _playbackSpeed = MutableLiveData(1f)
+    val playbackSpeed: LiveData<Float> get() = _playbackSpeed
 
     // Player Menus
     private var playerMenuHelper: PlayerMenuHelper? = null
@@ -797,6 +801,10 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
                 }
             }
         }
+    }
+
+    override fun onPlaybackParametersChanged(playbackParameters: PlaybackParameters) {
+        _playbackSpeed.postValue(playbackParameters.speed)
     }
 
     fun cancelFallbackRetry() {

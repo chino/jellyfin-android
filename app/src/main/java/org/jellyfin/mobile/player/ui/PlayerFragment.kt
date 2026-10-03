@@ -100,6 +100,9 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         playerFullscreenHelper = PlayerFullscreenHelper(window)
 
         // Observe ViewModel
+        viewModel.playbackSpeed.observe(this) { speed ->
+            playerMenus?.updateSpeed(speed)
+        }
         viewModel.player.observe(this) { player ->
             playerView.player = player
             // Automatically close fragment, unless we're in PiP mode
