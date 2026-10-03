@@ -86,6 +86,7 @@
     <string name="external_player_invalid_play_method">Invalid play method.</string>
     <string name="external_player_not_supported_yet">Playback tracking not supported in selected external player yet. Contact developers to try to add support for it.</string>
     <string name="external_player_invalid_player">No valid external player selected. Playback tracking disabled.</string>
+    <string name="player_local_badge">LOCAL</string>
     <string name="external_player_unknown_error">Unknown error in external player. Playback tracking disabled.</string>
 
     <string name="activity_name_settings">Jellyfin Settings</string>
@@ -110,6 +111,8 @@
     <string name="pref_exoplayer_allow_background_audio_summary">Allow playing videos in the background with audio-only</string>
     <string name="pref_exoplayer_allow_horizontal_gesture">Horizontal gestures</string>
     <string name="pref_exoplayer_allow_horizontal_gesture_summary">Allow horizontal gesture control for video seeking</string>
+    <string name="pref_exoplayer_smart_local_playback_title">Prefer local downloads</string>
+    <string name="pref_exoplayer_smart_local_playback_summary">Automatically use downloaded files when playing from the library</string>
     <string name="pref_exoplayer_direct_play_ass">Allow SSA/ASS subtitles in direct play</string>
     <string name="pref_exoplayer_direct_play_ass_description">Use experimental client-side subtitle rendering, may not always work</string>
     <string name="pref_exoplayer_network_buffer">Playback buffer size</string>

@@ -122,6 +122,9 @@ class AppPreferences(context: Context) {
     val exoPlayerAllowHorizontalGesture: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE, true)
 
+    val exoPlayerSmartLocalPlayback: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK, true)
+
     val exoPlayerDirectPlayAss: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_DIRECT_PLAY_ASS, false)
 

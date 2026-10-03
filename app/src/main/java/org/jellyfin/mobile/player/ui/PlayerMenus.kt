@@ -53,6 +53,7 @@ class PlayerMenus(
     private val audioStreamsButton: View by playerControlsBinding::audioStreamsButton
     private val subtitlesButton: ImageButton by playerControlsBinding::subtitlesButton
     private val speedButton: View by playerControlsBinding::speedButton
+    private val localBadge: View by playerControlsBinding::localBadge
     private val qualityButton: View by playerControlsBinding::qualityButton
     private val decoderButton: View by playerControlsBinding::decoderButton
     private val infoButton: View by playerControlsBinding::infoButton
@@ -191,9 +192,15 @@ class PlayerMenus(
         val height = videoStream?.height
         val width = videoStream?.width
         when (mediaSource) {
-            is LocalJellyfinMediaSource -> qualityButton.isVisible = false
-            is RemoteJellyfinMediaSource -> if (height != null && width != null) {
-                buildQualityMenu(qualityMenu.menu, mediaSource.maxStreamingBitrate, width, height)
+            is LocalJellyfinMediaSource -> {
+                qualityButton.isVisible = false
+                localBadge.isVisible = true
+            }
+            is RemoteJellyfinMediaSource -> {
+                localBadge.isVisible = false
+                if (height != null && width != null) {
+                    buildQualityMenu(qualityMenu.menu, mediaSource.maxStreamingBitrate, width, height)
+                }
             }
         }
 

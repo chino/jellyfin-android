@@ -59,6 +59,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var rememberBrightnessPreference: Preference
     private lateinit var backgroundAudioPreference: Preference
     private lateinit var horizontalGesturePreference: Preference
+    private lateinit var smartLocalPlaybackPreference: CheckBoxPreference
     private lateinit var directPlayAssPreference: Preference
     private lateinit var networkBufferPreference: Preference
     private lateinit var externalPlayerChoicePreference: Preference
@@ -127,6 +128,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 pressSpeedUpPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 backgroundAudioPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 horizontalGesturePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                smartLocalPlaybackPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 networkBufferPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 externalPlayerChoicePreference.enabled = selection == VideoPlayerType.EXTERNAL_PLAYER
@@ -165,6 +167,12 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         horizontalGesturePreference = checkBox(Constants.PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE) {
             titleRes = R.string.pref_exoplayer_allow_horizontal_gesture
             summaryRes = R.string.pref_exoplayer_allow_horizontal_gesture_summary
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+            defaultValue = true
+        }
+        smartLocalPlaybackPreference = checkBox(Constants.PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK) {
+            titleRes = R.string.pref_exoplayer_smart_local_playback_title
+            summaryRes = R.string.pref_exoplayer_smart_local_playback_summary
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
             defaultValue = true
         }
