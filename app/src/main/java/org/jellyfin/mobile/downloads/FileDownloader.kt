@@ -2,6 +2,7 @@ package org.jellyfin.mobile.downloads
 
 import android.net.Uri
 import android.os.ParcelFileDescriptor
+import androidx.annotation.VisibleForTesting
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -127,16 +128,23 @@ class FileDownloader(
         to: ParcelFileDescriptor,
         progressCallback: ProgressCallback = ProgressCallback.Empty,
     ) {
-        val rangeStart = to.statSize
+        val (response, restarted) = request(api, from, to.statSize)
+        save(response, to, progressCallback, truncate = restarted)
+    }
+
+    /**
+     * Requests [from], resuming after [rangeStart] bytes. Returns the response and whether the download
+     * had to start over.
+     */
+    @VisibleForTesting
+    internal suspend fun request(api: ApiClient, from: Uri, rangeStart: Long): Pair<Response, Boolean> =
         // Only a rejected resume starts the file over. Connection errors aren't caught here, so the
         // partial file is kept and the download worker resumes it from the same point when it retries.
-        val (response, restarted) = try {
+        try {
             download(api, from, rangeStart) to false
         } catch (_: ResumeRejectedException) {
             download(api, from, null) to true
         }
-        save(response, to, progressCallback, truncate = restarted)
-    }
 }
 
 private class ResumeRejectedException(response: Response) : IOException(
