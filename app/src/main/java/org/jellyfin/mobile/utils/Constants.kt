@@ -3,6 +3,7 @@ package org.jellyfin.mobile.utils
 import android.app.PendingIntent
 import android.media.session.PlaybackState
 import android.util.Rational
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import org.jellyfin.mobile.BuildConfig
 
 @Suppress("MagicNumber")
@@ -44,6 +45,11 @@ object Constants {
     const val NETWORK_BUFFER_AUTO = "auto"
     const val NETWORK_BUFFER_LARGE = "large"
     const val NETWORK_BUFFER_EXTRA_LARGE = "extra_large"
+    const val PREF_EXOPLAYER_MAX_PLAYBACK_SPEED = "pref_exoplayer_max_playback_speed"
+    const val DEFAULT_MAX_PLAYBACK_SPEED = 2f
+    const val MAX_PLAYBACK_SPEED = DefaultAudioSink.MAX_PLAYBACK_SPEED // Media3 plays no faster than this
+    const val PLAYBACK_SPEED_SLIDER_SCALE = 100 // the slider saves hundredths: 225 = 2.25x
+    const val PLAYBACK_SPEED_SLIDER_STEP = 25
     const val PREF_EXTERNAL_PLAYER_APP = "pref_external_player_app"
     const val PREF_SUBTITLE_STYLE = "pref_subtitle_style"
     const val PREF_STORAGE_LOCATION = "pref_storage_location"

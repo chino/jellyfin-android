@@ -18,6 +18,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.TimeBar
 import org.jellyfin.mobile.R
+import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
 import org.jellyfin.mobile.player.qualityoptions.QualityOptionsProvider
@@ -44,6 +45,7 @@ class PlayerMenus(
 
     private val context = playerBinding.root.context
     private val qualityOptionsProvider: QualityOptionsProvider by inject()
+    private val appPreferences: AppPreferences by inject()
     private val playPauseContainer: View by playerControlsBinding::playPauseContainer
     private val previousButton: View by playerControlsBinding::previousButton
     private val nextButton: View by playerControlsBinding::nextButton
@@ -302,7 +304,8 @@ class PlayerMenus(
     }
 
     private fun createSpeedMenu() = PopupMenu(context, speedButton).apply {
-        for (step in SPEED_MENU_STEP_MIN..SPEED_MENU_STEP_MAX) {
+        val maxStep = (appPreferences.exoPlayerMaxPlaybackSpeed / SPEED_MENU_STEP_SIZE).toInt()
+        for (step in SPEED_MENU_STEP_MIN..maxStep) {
             val newSpeed = step * SPEED_MENU_STEP_SIZE
             menu.add(SPEED_MENU_GROUP, step, Menu.NONE, "${newSpeed}x").isChecked = newSpeed == 1f
         }
@@ -438,6 +441,5 @@ class PlayerMenus(
 
         private const val SPEED_MENU_STEP_SIZE = 0.25f
         private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
-        private const val SPEED_MENU_STEP_MAX = 8 // → 2x
     }
 }

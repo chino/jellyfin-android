@@ -11,6 +11,7 @@ import org.jellyfin.mobile.settings.ExternalPlayerPackage
 import org.jellyfin.mobile.settings.VideoPlayerType
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.MediaSegmentType
+import kotlin.math.roundToInt
 
 class AppPreferences(context: Context) {
     private val sharedPreferences: SharedPreferences =
@@ -127,6 +128,14 @@ class AppPreferences(context: Context) {
 
     val exoPlayerNetworkBuffer: String
         get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_NETWORK_BUFFER, Constants.NETWORK_BUFFER_AUTO)!!
+
+    val exoPlayerMaxPlaybackSpeed: Float
+        get() {
+            val default = (Constants.DEFAULT_MAX_PLAYBACK_SPEED * Constants.PLAYBACK_SPEED_SLIDER_SCALE).roundToInt()
+            val saved = sharedPreferences.getInt(Constants.PREF_EXOPLAYER_MAX_PLAYBACK_SPEED, default)
+            return (saved.toFloat() / Constants.PLAYBACK_SPEED_SLIDER_SCALE)
+                .coerceIn(Constants.DEFAULT_MAX_PLAYBACK_SPEED, Constants.MAX_PLAYBACK_SPEED)
+        }
 
     @ExternalPlayerPackage
     var externalPlayerApp: String

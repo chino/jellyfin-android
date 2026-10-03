@@ -19,6 +19,7 @@ import de.Maxr1998.modernpreferences.helpers.defaultOnSelectionChange
 import de.Maxr1998.modernpreferences.helpers.onClick
 import de.Maxr1998.modernpreferences.helpers.pref
 import de.Maxr1998.modernpreferences.helpers.screen
+import de.Maxr1998.modernpreferences.helpers.seekBar
 import de.Maxr1998.modernpreferences.helpers.singleChoice
 import de.Maxr1998.modernpreferences.preferences.CheckBoxPreference
 import de.Maxr1998.modernpreferences.preferences.choice.SelectionItem
@@ -34,6 +35,7 @@ import org.jellyfin.mobile.utils.extensions.requireMainActivity
 import org.jellyfin.mobile.utils.isPackageInstalled
 import org.jellyfin.mobile.utils.withThemedContext
 import org.koin.android.ext.android.inject
+import kotlin.math.roundToInt
 
 class SettingsFragment : Fragment(), BackPressInterceptor {
 
@@ -61,6 +63,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var horizontalGesturePreference: Preference
     private lateinit var directPlayAssPreference: Preference
     private lateinit var networkBufferPreference: Preference
+    private lateinit var maxPlaybackSpeedPreference: Preference
     private lateinit var externalPlayerChoicePreference: Preference
     private lateinit var downloadLocationPreference: Preference
 
@@ -129,6 +132,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 horizontalGesturePreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 networkBufferPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                maxPlaybackSpeedPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 externalPlayerChoicePreference.enabled = selection == VideoPlayerType.EXTERNAL_PLAYER
             }
         }
@@ -193,6 +197,16 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
         networkBufferPreference = singleChoice(Constants.PREF_EXOPLAYER_NETWORK_BUFFER, networkBufferOptions) {
             titleRes = R.string.pref_exoplayer_network_buffer
             initialSelection = Constants.NETWORK_BUFFER_AUTO
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+        }
+        maxPlaybackSpeedPreference = seekBar(Constants.PREF_EXOPLAYER_MAX_PLAYBACK_SPEED) {
+            titleRes = R.string.pref_exoplayer_max_playback_speed
+            summaryRes = R.string.pref_exoplayer_max_playback_speed_summary
+            min = (Constants.DEFAULT_MAX_PLAYBACK_SPEED * Constants.PLAYBACK_SPEED_SLIDER_SCALE).roundToInt()
+            max = (Constants.MAX_PLAYBACK_SPEED * Constants.PLAYBACK_SPEED_SLIDER_SCALE).roundToInt()
+            step = Constants.PLAYBACK_SPEED_SLIDER_STEP
+            default = min
+            formatter = { value -> "${value.toFloat() / Constants.PLAYBACK_SPEED_SLIDER_SCALE}x" }
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
         }
 
