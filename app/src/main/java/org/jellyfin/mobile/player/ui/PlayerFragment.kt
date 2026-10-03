@@ -355,6 +355,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
 
     fun onUpdatePressSpeed(speed: Float, isLocked: Boolean) {
         viewModel.setPlaybackSpeed(speed)
+        if (isLocked) playerMenus?.checkSpeed(speed)
         playerBinding.speedIndicator.isVisible = true
         val lockIcon = if (isLocked) " \uD83D\uDD12" else ""
         playerBinding.speedIndicator.text = getString(R.string.player_speed_indicator, speed.toString(), lockIcon)
