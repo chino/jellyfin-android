@@ -30,6 +30,7 @@ import androidx.media3.ui.PlayerView
 import io.github.peerless2012.ass.media.AssHandler
 import io.github.peerless2012.ass.media.widget.AssSubtitleView
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
@@ -57,13 +58,14 @@ import org.jellyfin.sdk.model.api.MediaSegmentDto
 import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.android.ext.android.inject
 import kotlin.math.max
+import kotlin.time.Duration.Companion.seconds
 import androidx.media3.ui.R as Media3R
 
 @Suppress("TooManyFunctions")
 class PlayerFragment : Fragment(), BackPressInterceptor {
     private val appPreferences: AppPreferences by inject()
     private val assHandler: AssHandler by inject()
-    private val viewModel: PlayerViewModel by viewModels()
+    val viewModel: PlayerViewModel by viewModels()
     private var _playerBinding: FragmentPlayerBinding? = null
     private val playerBinding: FragmentPlayerBinding get() = _playerBinding!!
     private val playerView: PlayerView get() = playerBinding.playerView
@@ -349,8 +351,48 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         return viewModel.setPlaybackSpeed(speed)
     }
 
+    private var hideSpeedIndicatorJob: Job? = null
+
+    fun onUpdatePressSpeed(speed: Float, isLocked: Boolean) {
+        viewModel.setPlaybackSpeed(speed)
+        if (isLocked) playerMenus?.checkSpeed(speed)
+        playerBinding.speedIndicator.isVisible = true
+        val lockIcon = if (isLocked) " \uD83D\uDD12" else ""
+        playerBinding.speedIndicator.text = getString(R.string.player_speed_indicator, speed.toString(), lockIcon)
+
+        hideSpeedIndicatorJob?.cancel()
+        if (isLocked) {
+            hideSpeedIndicatorJob = lifecycleScope.launch {
+                delay(1.seconds)
+                playerBinding.speedIndicator.isVisible = false
+            }
+        }
+    }
+
+    fun updateGestureLockIndicator(x: Float, y: Float, isLocked: Boolean, visible: Boolean) {
+        playerBinding.gestureLockIndicator.apply {
+            isVisible = visible
+            if (visible) {
+                this.x = x - (width / 2f)
+                this.y = y - (height * Constants.GESTURE_LOCK_INDICATOR_OFFSET_RATIO)
+                setImageResource(
+                    if (isLocked) R.drawable.ic_screen_lock_white_24dp else R.drawable.ic_screen_unlock_white_24dp,
+                )
+            }
+        }
+    }
+
     fun onPressSpeedUp(isPressing: Boolean): Boolean {
-        return viewModel.setPressSpeedUp(isPressing, Constants.HOLD_SPEEDUP_MULTIPLIER)
+        // setPressSpeedUp restores the previous speed on release
+        val speed = appPreferences.exoPlayerHoldSpeedMultiplier
+        val success = viewModel.setPressSpeedUp(isPressing, speed)
+        if (success) {
+            playerBinding.speedIndicator.isVisible = isPressing
+            if (isPressing) {
+                playerBinding.speedIndicator.text = getString(R.string.player_speed_indicator, speed.toString(), "")
+            }
+        }
+        return success
     }
 
     fun onDecoderSelected(type: DecoderType) {
