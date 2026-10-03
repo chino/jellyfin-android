@@ -128,6 +128,10 @@ class AppPreferences(context: Context) {
     val exoPlayerNetworkBuffer: String
         get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_NETWORK_BUFFER, Constants.NETWORK_BUFFER_AUTO)!!
 
+    val exoPlayerMaxPlaybackSpeed: Float
+        get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_MAX_PLAYBACK_SPEED, null)
+            ?.toFloatOrNull() ?: Constants.DEFAULT_MAX_PLAYBACK_SPEED
+
     @ExternalPlayerPackage
     var externalPlayerApp: String
         get() = sharedPreferences.getString(Constants.PREF_EXTERNAL_PLAYER_APP, ExternalPlayerPackage.SYSTEM_DEFAULT)!!
