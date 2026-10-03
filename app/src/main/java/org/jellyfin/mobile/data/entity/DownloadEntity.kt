@@ -43,6 +43,10 @@ data class DownloadEntity(
 
     @ColumnInfo(name = "status") val status: DownloadStatus = DownloadStatus.QUEUED,
 
+    @ColumnInfo(name = "playback_position_ticks") var playbackPositionTicks: Long? = null,
+    @ColumnInfo(name = "last_played_at") var lastPlayedAt: Long? = null,
+    @ColumnInfo(name = "position_synced", defaultValue = "1") var positionSynced: Boolean = true,
+
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
     @ColumnInfo(name = "modified_at") var modifiedAt: Long = System.currentTimeMillis(),
 ) {
