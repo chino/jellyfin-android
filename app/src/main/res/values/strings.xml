@@ -142,6 +142,13 @@
     <string name="view_downloads">View downloads</string>
     <string name="downloads">Downloads</string>
     <string name="downloads_empty">No downloads yet</string>
+    <string name="downloads_section_shows">Shows</string>
+    <string name="downloads_section_books">Books &amp; Audiobooks</string>
+    <string name="downloads_section_music">Music</string>
+    <string name="downloads_section_movies">Movies</string>
+    <string name="downloads_group_books">My Library</string>
+    <string name="downloads_group_music">All Tracks</string>
+    <string name="downloads_group_movies">Film Collection</string>
     <string name="downloads_empty_description">You can download movies and TV shows to watch them offline. Look for the download icon on the item details page.</string>
     <string name="download_notifications_description">Download notifications</string>
     <string name="failed_thumbnail">Failed to download thumbnail</string>
@@ -170,6 +177,10 @@
         <item quantity="other">Do you want to remove these %1$d downloads?</item>
     </plurals>
     <string name="download_incomplete">Download incomplete</string>
+    <string name="download_queued">Queued</string>
+    <string name="download_failed">Download failed</string>
+    <string name="download_downloading">Downloading…</string>
+    <string name="download_progress_bytes">%1$s / %2$s (%3$d%%)</string>
     <string name="download_settings_dialog_title">Choose download location</string>
     <string name="download_settings_dialog_message">Please choose where downloaded media should be saved. Downloads use WiFi only by default.</string>
     <string name="select_folder">Select folder</string>

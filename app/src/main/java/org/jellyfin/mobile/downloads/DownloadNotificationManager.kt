@@ -81,6 +81,10 @@ class NotificationProgressCallback(
     }
 
     override suspend fun onProgress(downloaded: Long, total: Long) {
+        if (total > 0 && downloaded <= total) {
+            DownloadProgressTracker.updateProgress(downloadId, downloaded, total)
+        }
+
         val progress = (downloaded.toFloat() / (total.toFloat()) * 100).toInt().coerceIn(0, 100)
 
         if (lastProgress == progress) return
@@ -105,5 +109,8 @@ class NotificationProgressCallback(
         notificationManager.notify(DownloadNotificationManager.NOTIFICATION_ID, builder.build())
     }
 
-    suspend fun onEnd() = onProgress(Long.MAX_VALUE, Long.MAX_VALUE)
+    suspend fun onEnd() {
+        DownloadProgressTracker.removeProgress(downloadId)
+        onProgress(Long.MAX_VALUE, Long.MAX_VALUE)
+    }
 }
