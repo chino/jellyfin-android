@@ -85,6 +85,7 @@ class PlayerGestureHelper(
     private var speedUpStartY = 0f
     private var isSpeedLocked = false
     private var isSpeedFrozen = false
+    val holdSpeedLock = HoldSpeedLock()
 
     /**
      * Tracks accumulated seek time during horizontal swipe (in milliseconds).
@@ -187,6 +188,7 @@ class PlayerGestureHelper(
                 speedUpStartY = e.y
                 isSpeedLocked = false
                 isSpeedFrozen = false
+                holdSpeedLock.onHoldStarted(fragment.viewModel.playerOrNull?.playbackParameters?.speed ?: 1f)
 
                 with(fragment) {
                     isOnPressingSpeedUp = true
@@ -421,9 +423,8 @@ class PlayerGestureHelper(
                 if (isOnPressingSpeedUp) {
                     isOnPressingSpeedUp = false
                     fragment.updateGestureLockIndicator(x = 0f, y = 0f, isLocked = false, visible = false)
-                    if (!isSpeedLocked || event.action == MotionEvent.ACTION_CANCEL) {
-                        fragment.onPressSpeedUp(false)
-                    }
+                    val locked = isSpeedLocked && event.action != MotionEvent.ACTION_CANCEL
+                    holdSpeedLock.onHoldReleased(locked)?.let(fragment::onHoldSpeedReleased)
                 }
 
                 // Handle horizontal seek gesture completion

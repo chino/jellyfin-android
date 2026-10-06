@@ -394,6 +394,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
      * @return true if the playback speed was changed
      */
     fun onSpeedSelected(speed: Float): Boolean {
+        playerGestureHelper.holdSpeedLock.clear()
         return viewModel.setPlaybackSpeed(speed)
     }
 
@@ -412,6 +413,15 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
                 playerBinding.speedIndicator.isVisible = false
             }
         }
+    }
+
+    /**
+     * A hold ended without locking: return to [speed], the speed from before the hold or the lock.
+     */
+    fun onHoldSpeedReleased(speed: Float) {
+        viewModel.setPlaybackSpeed(speed)
+        hideSpeedIndicatorJob?.cancel()
+        playerBinding.speedIndicator.isVisible = false
     }
 
     fun updateGestureLockIndicator(x: Float, y: Float, isLocked: Boolean, visible: Boolean) {
