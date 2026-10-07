@@ -31,6 +31,7 @@ import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
 import java.util.Locale
+import kotlin.math.abs
 
 /**
  *  Provides a menu UI for audio, subtitle and video stream selection
@@ -301,6 +302,20 @@ class PlayerMenus(
         setOnDismissListener(this@PlayerMenus)
     }
 
+    /**
+     * Check the speed menu entry for [speed], or none when a slide set a speed the menu doesn't list.
+     */
+    fun checkSpeed(speed: Float) {
+        val step = (speed / SPEED_MENU_STEP_SIZE).toInt()
+        val onMenu = abs(step * SPEED_MENU_STEP_SIZE - speed) < SPEED_MATCH_TOLERANCE
+        // A single-choice group always keeps one entry checked, so allow "none" while updating it
+        speedMenu.menu.setGroupCheckable(SPEED_MENU_GROUP, true, false)
+        for (i in 0 until speedMenu.menu.size) {
+            speedMenu.menu[i].isChecked = onMenu && speedMenu.menu[i].itemId == step
+        }
+        speedMenu.menu.setGroupCheckable(SPEED_MENU_GROUP, true, true)
+    }
+
     private fun createSpeedMenu() = PopupMenu(context, speedButton).apply {
         for (step in SPEED_MENU_STEP_MIN..SPEED_MENU_STEP_MAX) {
             val newSpeed = step * SPEED_MENU_STEP_SIZE
@@ -436,6 +451,7 @@ class PlayerMenus(
         private const val BITRATE_MEGA_BIT = 1_000_000
         private const val BITRATE_KILO_BIT = 1_000
 
+        private const val SPEED_MATCH_TOLERANCE = 0.01f
         private const val SPEED_MENU_STEP_SIZE = 0.25f
         private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
         private const val SPEED_MENU_STEP_MAX = 8 // → 2x

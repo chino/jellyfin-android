@@ -39,6 +39,8 @@ object Constants {
     const val PREF_EXOPLAYER_BRIGHTNESS = "pref_exoplayer_brightness"
     const val PREF_EXOPLAYER_ALLOW_BACKGROUND_AUDIO = "pref_exoplayer_allow_background_audio"
     const val PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE = "pref_exoplayer_allow_horizontal_gesture"
+    const val PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER = "pref_exoplayer_hold_speed_multiplier"
+    const val PREF_EXOPLAYER_ENABLE_SPEED_LOCK = "pref_exoplayer_enable_speed_lock"
     const val PREF_EXOPLAYER_DIRECT_PLAY_ASS = "pref_exoplayer_direct_play_ass"
     const val PREF_EXOPLAYER_NETWORK_BUFFER = "pref_exoplayer_network_buffer"
     const val NETWORK_BUFFER_AUTO = "auto"
@@ -125,6 +127,13 @@ object Constants {
     const val HOLD_SPEEDUP_MULTIPLIER = 3f
     const val ZOOM_SCALE_BASE = 1f
     const val ZOOM_SCALE_THRESHOLD = 0.01f
+    const val HOLD_SPEED_LOCK_DISTANCE_DP = 100 // slide down this far to lock the speed
+    const val HOLD_SPEED_LOCK_HINT_DISTANCE_DP = 40 // slide down this far to show the lock indicator
+    const val HOLD_SPEED_MIN = 1f
+    const val HOLD_SPEED_MAX = 3f
+    const val HOLD_SPEED_STEPS_PER_UNIT = 10f // round the slide speed to 0.1x steps
+    const val HOLD_SPEED_FULL_WIDTH_DELTA = 2f // speed change for a slide across the full screen width
+    const val GESTURE_LOCK_INDICATOR_OFFSET_RATIO = 1.5f // indicator height multiples above the finger
     val ASPECT_RATIO_16_9 = Rational(16, 9)
     val PIP_MIN_RATIONAL = Rational(100, 239)
     val PIP_MAX_RATIONAL = Rational(239, 100)

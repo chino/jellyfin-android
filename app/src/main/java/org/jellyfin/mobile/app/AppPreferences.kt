@@ -105,6 +105,13 @@ class AppPreferences(context: Context) {
     val exoPlayerAllowPressSpeedUp: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ALLOW_PRESS_SPEED_UP, true)
 
+    val exoPlayerHoldSpeedMultiplier: Float
+        get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER, "3.0")
+            ?.toFloatOrNull() ?: Constants.HOLD_SPEEDUP_MULTIPLIER
+
+    val exoPlayerEnableSpeedLock: Boolean
+        get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ENABLE_SPEED_LOCK, true)
+
     val exoPlayerRememberBrightness: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_REMEMBER_BRIGHTNESS, false)
 
