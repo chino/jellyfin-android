@@ -27,6 +27,12 @@ class DownloadManager(
          * split into separate download chunks.
          */
         private const val ITEMS_BATCH = 25
+
+        /**
+         * Item fields saved with a download. Chapters are included so that downloads keep their chapter
+         * markers and chapter skipping when played offline.
+         */
+        val DOWNLOAD_ITEM_FIELDS = setOf(ItemFields.MEDIA_SOURCES, ItemFields.PATH, ItemFields.CHAPTERS)
     }
 
     suspend fun enqueueItems(
@@ -41,7 +47,7 @@ class DownloadManager(
 
             val response by api.itemsApi.getItems(
                 ids = itemsChunk,
-                fields = setOf(ItemFields.MEDIA_SOURCES, ItemFields.PATH),
+                fields = DOWNLOAD_ITEM_FIELDS,
             )
 
             // Sanity check, this shouldn't happen really
