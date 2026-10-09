@@ -304,14 +304,13 @@ class PlayerMenus(
     }
 
     private fun createSpeedMenu() = PopupMenu(context, speedButton).apply {
-        val maxStep = (appPreferences.exoPlayerMaxPlaybackSpeed / SPEED_MENU_STEP_SIZE).toInt()
-        for (step in SPEED_MENU_STEP_MIN..maxStep) {
-            val newSpeed = step * SPEED_MENU_STEP_SIZE
-            menu.add(SPEED_MENU_GROUP, step, Menu.NONE, "${newSpeed}x").isChecked = newSpeed == 1f
+        val speeds = speedMenuOptions(appPreferences.exoPlayerMaxPlaybackSpeed, appPreferences.exoPlayerSpeedMenuStep)
+        speeds.forEachIndexed { index, speed ->
+            menu.add(SPEED_MENU_GROUP, index, Menu.NONE, "${speed}x").isChecked = speed == 1f
         }
         menu.setGroupCheckable(SPEED_MENU_GROUP, true, true)
         setOnMenuItemClickListener { clickedItem: MenuItem ->
-            fragment.onSpeedSelected(clickedItem.itemId * SPEED_MENU_STEP_SIZE).also { success ->
+            fragment.onSpeedSelected(speeds[clickedItem.itemId]).also { success ->
                 if (success) clickedItem.isChecked = true
             }
         }
@@ -438,8 +437,5 @@ class PlayerMenus(
 
         private const val BITRATE_MEGA_BIT = 1_000_000
         private const val BITRATE_KILO_BIT = 1_000
-
-        private const val SPEED_MENU_STEP_SIZE = 0.25f
-        private const val SPEED_MENU_STEP_MIN = 2 // → 0.5x
     }
 }

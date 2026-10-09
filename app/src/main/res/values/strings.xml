@@ -121,6 +121,8 @@
     <string name="network_buffer_extra_large_description">Maximum buffer, intended for slow or satellite connections</string>
     <string name="pref_exoplayer_max_playback_speed">Maximum playback speed</string>
     <string name="pref_exoplayer_max_playback_speed_summary">Highest speed offered in the speed menu</string>
+    <string name="pref_exoplayer_speed_menu_step">Speed menu step</string>
+    <string name="pref_exoplayer_speed_menu_step_summary">Gap between the speeds in the speed menu</string>
 
     <string name="external_player_app">External player app</string>
     <string name="external_player_mpv">MPV Player</string>

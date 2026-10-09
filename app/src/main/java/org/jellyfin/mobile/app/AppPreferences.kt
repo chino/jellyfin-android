@@ -137,6 +137,10 @@ class AppPreferences(context: Context) {
                 .coerceIn(Constants.DEFAULT_MAX_PLAYBACK_SPEED, Constants.MAX_PLAYBACK_SPEED)
         }
 
+    val exoPlayerSpeedMenuStep: Float
+        get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_SPEED_MENU_STEP, null)
+            ?.toFloatOrNull()?.takeIf { step -> step > 0f } ?: Constants.DEFAULT_SPEED_MENU_STEP
+
     @ExternalPlayerPackage
     var externalPlayerApp: String
         get() = sharedPreferences.getString(Constants.PREF_EXTERNAL_PLAYER_APP, ExternalPlayerPackage.SYSTEM_DEFAULT)!!

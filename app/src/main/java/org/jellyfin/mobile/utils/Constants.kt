@@ -50,6 +50,8 @@ object Constants {
     const val MAX_PLAYBACK_SPEED = DefaultAudioSink.MAX_PLAYBACK_SPEED // Media3 plays no faster than this
     const val PLAYBACK_SPEED_SLIDER_SCALE = 100 // the slider saves hundredths: 225 = 2.25x
     const val PLAYBACK_SPEED_SLIDER_STEP = 25
+    const val PREF_EXOPLAYER_SPEED_MENU_STEP = "pref_exoplayer_speed_menu_step"
+    const val DEFAULT_SPEED_MENU_STEP = 0.25f
     const val PREF_EXTERNAL_PLAYER_APP = "pref_external_player_app"
     const val PREF_SUBTITLE_STYLE = "pref_subtitle_style"
     const val PREF_STORAGE_LOCATION = "pref_storage_location"

@@ -64,6 +64,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
     private lateinit var directPlayAssPreference: Preference
     private lateinit var networkBufferPreference: Preference
     private lateinit var maxPlaybackSpeedPreference: Preference
+    private lateinit var speedMenuStepPreference: Preference
     private lateinit var externalPlayerChoicePreference: Preference
     private lateinit var downloadLocationPreference: Preference
 
@@ -133,6 +134,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
                 directPlayAssPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 networkBufferPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 maxPlaybackSpeedPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
+                speedMenuStepPreference.enabled = selection == VideoPlayerType.EXO_PLAYER
                 externalPlayerChoicePreference.enabled = selection == VideoPlayerType.EXTERNAL_PLAYER
             }
         }
@@ -207,6 +209,13 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             step = Constants.PLAYBACK_SPEED_SLIDER_STEP
             default = min
             formatter = { value -> "${value.toFloat() / Constants.PLAYBACK_SPEED_SLIDER_SCALE}x" }
+            enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
+        }
+        val speedMenuStepOptions = listOf("0.25", "0.5", "1.0").map { step -> SelectionItem(step, "${step}x") }
+        speedMenuStepPreference = singleChoice(Constants.PREF_EXOPLAYER_SPEED_MENU_STEP, speedMenuStepOptions) {
+            titleRes = R.string.pref_exoplayer_speed_menu_step
+            summaryRes = R.string.pref_exoplayer_speed_menu_step_summary
+            initialSelection = "0.25"
             enabled = appPreferences.videoPlayerType == VideoPlayerType.EXO_PLAYER
         }
 
