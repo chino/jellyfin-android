@@ -11,6 +11,7 @@ import org.jellyfin.mobile.data.entity.DownloadEntity
 import org.jellyfin.mobile.data.entity.DownloadFileEntity
 import org.jellyfin.mobile.data.entity.DownloadFiles
 import org.jellyfin.sdk.model.UUID
+import org.jellyfin.sdk.model.api.BaseItemDto
 
 @Dao
 interface DownloadDao {
@@ -34,11 +35,20 @@ interface DownloadDao {
     @Query("SELECT * FROM download WHERE id = :id")
     suspend fun getDownload(id: Long): DownloadEntity?
 
+    @Query("SELECT * FROM download")
+    suspend fun getDownloads(): List<DownloadEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insert(entity: DownloadEntity): Long
 
     @Update(onConflict = OnConflictStrategy.REPLACE)
     suspend fun update(entity: DownloadEntity): Int
+
+    /**
+     * Replaces only the saved item info, so a download's status can't be overwritten by a stale copy.
+     */
+    @Query("UPDATE download SET item = :item WHERE id = :id")
+    suspend fun updateItem(id: Long, item: BaseItemDto)
 
     @Query("DELETE FROM download WHERE id = :id")
     suspend fun delete(id: Long)
