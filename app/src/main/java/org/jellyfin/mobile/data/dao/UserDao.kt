@@ -9,6 +9,7 @@ import org.jellyfin.mobile.data.entity.ServerUser
 import org.jellyfin.mobile.data.entity.UserEntity
 import org.jellyfin.mobile.data.entity.UserEntity.Key.ACCESS_TOKEN
 import org.jellyfin.mobile.data.entity.UserEntity.Key.ID
+import org.jellyfin.mobile.data.entity.UserEntity.Key.LAST_LOGIN_TIMESTAMP
 import org.jellyfin.mobile.data.entity.UserEntity.Key.SERVER_ID
 import org.jellyfin.mobile.data.entity.UserEntity.Key.TABLE_NAME
 import org.jellyfin.mobile.data.entity.UserEntity.Key.USER_ID
@@ -49,6 +50,16 @@ interface UserDao {
 
     @Query("SELECT * FROM $TABLE_NAME WHERE $SERVER_ID = :serverId")
     fun getAllForServer(serverId: Long): List<UserEntity>
+
+    /**
+     * All logged in entries of the user with [userId], most recent login first. A user has one entry per
+     * server address they logged in through, and user ids are unique, so these all reach the same server.
+     */
+    @Query(
+        "SELECT * FROM $TABLE_NAME WHERE $USER_ID = :userId AND $ACCESS_TOKEN IS NOT NULL " +
+            "ORDER BY $LAST_LOGIN_TIMESTAMP DESC",
+    )
+    fun getLoggedInByUserId(userId: UUID): List<UserEntity>
 
     @Query("UPDATE $TABLE_NAME SET access_token = :accessToken WHERE $ID = :id")
     fun update(id: Long, accessToken: String?): Int
