@@ -7,6 +7,7 @@ import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_FULL
+import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
 import android.view.WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_OFF
 import android.widget.ImageView
 import android.widget.LinearLayout
@@ -20,6 +21,7 @@ import androidx.media3.ui.PlayerView
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
+import org.jellyfin.mobile.player.source.JellyfinMediaSource
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.mobile.utils.brightness
 import org.jellyfin.mobile.utils.dip
@@ -47,9 +49,17 @@ class PlayerGestureHelper(
     private val seekOverlayProgress: ProgressBar by playerBinding::seekOverlayProgress
     private var isOnPressingSpeedUp = false
 
-    init {
-        if (appPreferences.exoPlayerRememberBrightness) {
-            fragment.requireActivity().window.brightness = appPreferences.exoPlayerBrightness
+    /**
+     * Audiobooks have nothing to look at, so they keep the system brightness and don't offer the brightness gesture.
+     */
+    private var isBrightnessEnabled = true
+
+    fun onMediaSourceChanged(mediaSource: JellyfinMediaSource) {
+        isBrightnessEnabled = !mediaSource.isAudiobook
+        val window = fragment.requireActivity().window
+        when {
+            !isBrightnessEnabled -> window.brightness = BRIGHTNESS_OVERRIDE_NONE
+            appPreferences.exoPlayerRememberBrightness -> window.brightness = appPreferences.exoPlayerBrightness
         }
     }
 
@@ -311,7 +321,9 @@ class PlayerGestureHelper(
                 }
 
 
-                if (!appPreferences.exoPlayerAllowSwipeGestures) {
+                val viewCenterX = playerView.measuredWidth / 2
+                val isBrightnessSide = firstEvent.x.toInt() <= viewCenterX
+                if (!appPreferences.exoPlayerAllowSwipeGestures || isBrightnessSide && !isBrightnessEnabled) {
                     return false
                 }
                 // Handle vertical swipe for brightness/volume (existing logic)
@@ -323,13 +335,11 @@ class PlayerGestureHelper(
                 seekOverlayLayout.isVisible = false
                 seekOverlayLayout.removeCallbacks(hideSeekOverlayAction)
 
-                val viewCenterX = playerView.measuredWidth / 2
-
                 // Distance to swipe to go from min to max
                 val distanceFull = playerView.measuredHeight * Constants.FULL_SWIPE_RANGE_SCREEN_RATIO
                 val ratioChange = distanceY / distanceFull
 
-                if (firstEvent.x.toInt() > viewCenterX) {
+                if (!isBrightnessSide) {
                     // Swiping on the right, change volume
 
                     val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)

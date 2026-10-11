@@ -145,6 +145,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
                 else -> PlayerView.ARTWORK_DISPLAY_MODE_OFF
             }
             suppressControllerAutoHide(mediaSource.isAudiobook)
+            playerGestureHelper.onMediaSourceChanged(mediaSource)
 
             // Update title and player menus
             toolbar.title = mediaSource.getName(requireContext())
