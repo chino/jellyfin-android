@@ -105,9 +105,11 @@
     <string name="sleep_timer_at_chapter_end">Sleep at the end of this chapter</string>
     <string name="player_chapter_number">Chapter %1$d</string>
     <string name="player_chapter_title">%1$d/%2$d · %3$s</string>
-    <string name="player_book_time_left">%1$s left in book</string>
-    <string name="player_time_left">%1$s left in chapter · %2$s left in book</string>
-    <string name="player_time_left_at_speed">%1$s left in chapter · %2$s left in book at %3$sx</string>
+    <string name="player_book_time_left">%1$s left</string>
+    <string name="player_book_time_left_at_speed">%1$s left at %2$sx</string>
+    <string name="player_chapter_time_remaining">−%1$s</string>
+    <string name="player_duration_hours_minutes">%1$dh %2$dm</string>
+    <string name="player_duration_minutes">%1$dm</string>
     <string name="player_local_badge">LOCAL</string>
     <string name="external_player_unknown_error">Unknown error in external player. Playback tracking disabled.</string>
 

@@ -3,6 +3,7 @@ package org.jellyfin.mobile.player.ui
 import android.text.format.DateUtils
 import android.view.Menu
 import android.widget.PopupMenu
+import android.widget.SeekBar
 import androidx.core.view.isVisible
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
@@ -16,8 +17,9 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.minutes
 
 /**
- * Shows the current chapter of an audiobook with its own progress, the time left in the chapter and
- * the book at the current speed, and a menu to jump to any chapter.
+ * Shows the current chapter of an audiobook with a seek bar for that chapter only, the time into and left in
+ * the chapter, the time left in the book at the current speed, and a menu to jump to any chapter.
+ * The seek bar for the whole book is hidden while a book has chapters, like in other audiobook apps.
  */
 class AudiobookChapterHelper(
     private val binding: ExoPlayerControlViewBinding,
@@ -29,9 +31,31 @@ class AudiobookChapterHelper(
     private var chapterMenu: PopupMenu? = null
     private val sleepTimerMenu = createSleepTimerMenu()
 
+    /** Start and end of the chapter shown, used to turn the seek bar position into a playback position. */
+    private var chapterStart: Duration = Duration.ZERO
+    private var chapterEnd: Duration = Duration.ZERO
+    private var isSeeking = false
+
     init {
         binding.chaptersButton.setOnClickListener { chapterMenu?.show() }
+        binding.audiobookChapterTitle.setOnClickListener { chapterMenu?.show() }
         binding.sleepTimerButton.setOnClickListener { sleepTimerMenu.show() }
+        binding.audiobookChapterSeekBar.setOnSeekBarChangeListener(
+            object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar, progress: Int, fromUser: Boolean) {
+                    if (fromUser) updateChapterTimes(positionAt(progress))
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar) {
+                    isSeeking = true
+                }
+
+                override fun onStopTrackingTouch(seekBar: SeekBar) {
+                    isSeeking = false
+                    onSeek(positionAt(seekBar.progress))
+                }
+            },
+        )
     }
 
     fun onMediaSourceChanged(mediaSource: JellyfinMediaSource) {
@@ -44,7 +68,13 @@ class AudiobookChapterHelper(
         val hasChapters = chapters.isNotEmpty()
         binding.audiobookChapterPanel.isVisible = mediaSource.isAudiobook
         binding.audiobookChapterTitle.isVisible = hasChapters
-        binding.audiobookChapterProgress.isVisible = hasChapters
+        binding.audiobookChapterSeekBar.isVisible = hasChapters
+        binding.audiobookChapterElapsed.isVisible = hasChapters
+        binding.audiobookChapterRemaining.isVisible = hasChapters
+        // The chapter seek bar replaces the one for the whole book; books without chapters keep the latter
+        binding.seekBarContainer.isVisible = !hasChapters
+        binding.exoPosition.isVisible = !hasChapters
+        binding.exoDuration.isVisible = !hasChapters
         binding.chaptersButton.isVisible = hasChapters
         binding.sleepTimerButton.isVisible = mediaSource.isAudiobook
         chapterMenu = if (hasChapters) createChapterMenu() else null
@@ -56,49 +86,70 @@ class AudiobookChapterHelper(
      */
     fun update(position: Duration, speed: Float) {
         updateSleepTimer()
-        if (chapters.isEmpty()) {
-            updateBookTimeLeft(position, speed)
-            return
-        }
-        val context = binding.root.context
+        updateBookTimeLeft(position, speed)
+        if (chapters.isEmpty()) return
 
         val index = chapters.indexOfLast { it.startPositionTicks.ticks <= position }.coerceAtLeast(0)
-        val chapterStart = chapters[index].startPositionTicks.ticks
-        val chapterEnd = chapters.getOrNull(index + 1)?.startPositionTicks?.ticks ?: runTime
-        val chapterLength = chapterEnd - chapterStart
+        chapterStart = chapters[index].startPositionTicks.ticks
+        chapterEnd = chapters.getOrNull(index + 1)?.startPositionTicks?.ticks ?: runTime
 
-        binding.audiobookChapterTitle.text = context.getString(
+        binding.audiobookChapterTitle.text = binding.root.context.getString(
             R.string.player_chapter_title,
             index + 1,
             chapters.size,
             chapterName(index),
         )
-        binding.audiobookChapterProgress.progress = when {
-            chapterLength > Duration.ZERO -> ((position - chapterStart) / chapterLength * PROGRESS_MAX).toInt()
-            else -> 0
-        }
-
-        val speedFactor = speed.takeIf { it > 0f } ?: 1f
-        val chapterLeft = formatDuration((chapterEnd - position) / speedFactor.toDouble())
-        val bookLeft = formatDuration((runTime - position) / speedFactor.toDouble())
-        binding.audiobookTimeLeft.text = when (speedFactor) {
-            1f -> context.getString(R.string.player_time_left, chapterLeft, bookLeft)
-            else -> {
-                val formattedSpeed = String.format(Locale.US, "%.2f", speedFactor).trimEnd('0').trimEnd('.')
-                context.getString(R.string.player_time_left_at_speed, chapterLeft, bookLeft, formattedSpeed)
+        // While the user drags the seek bar, it shows where they are dragging rather than the playback position
+        if (!isSeeking) {
+            val chapterLength = chapterEnd - chapterStart
+            binding.audiobookChapterSeekBar.progress = when {
+                chapterLength > Duration.ZERO -> ((position - chapterStart) / chapterLength * PROGRESS_MAX).toInt()
+                else -> 0
             }
+            updateChapterTimes(position)
         }
 
         // The menu is a single-choice group, so checking one item unchecks the others
         chapterMenu?.menu?.findItem(index)?.isChecked = true
     }
 
-    private fun updateBookTimeLeft(position: Duration, speed: Float) {
-        val speedFactor = speed.takeIf { it > 0f } ?: 1f
-        binding.audiobookTimeLeft.text = binding.root.context.getString(
-            R.string.player_book_time_left,
-            formatDuration((runTime - position) / speedFactor.toDouble()),
+    /** The playback position for the given chapter seek bar [progress]. */
+    private fun positionAt(progress: Int): Duration =
+        chapterStart + (chapterEnd - chapterStart) * (progress.toDouble() / PROGRESS_MAX)
+
+    /** Time into and left in the chapter, in playback time like the seek bar, not adjusted for the speed. */
+    private fun updateChapterTimes(position: Duration) {
+        binding.audiobookChapterElapsed.text = formatDuration(position - chapterStart)
+        binding.audiobookChapterRemaining.text = binding.root.context.getString(
+            R.string.player_chapter_time_remaining,
+            formatDuration(chapterEnd - position),
         )
+    }
+
+    private fun updateBookTimeLeft(position: Duration, speed: Float) {
+        val context = binding.root.context
+        val speedFactor = speed.takeIf { it > 0f } ?: 1f
+        val bookLeft = formatHoursMinutes((runTime - position) / speedFactor.toDouble())
+        binding.audiobookTimeLeft.text = when (speedFactor) {
+            1f -> context.getString(R.string.player_book_time_left, bookLeft)
+            else -> {
+                val formattedSpeed = String.format(Locale.US, "%.2f", speedFactor).trimEnd('0').trimEnd('.')
+                context.getString(R.string.player_book_time_left_at_speed, bookLeft, formattedSpeed)
+            }
+        }
+    }
+
+    /** A long time as hours and minutes, for example "7h 43m", rounded up so the last minute doesn't read 0m. */
+    private fun formatHoursMinutes(duration: Duration): String {
+        val totalMinutes = (duration.coerceAtLeast(Duration.ZERO).inWholeSeconds + SECONDS_PER_MINUTE - 1) /
+            SECONDS_PER_MINUTE
+        val hours = (totalMinutes / MINUTES_PER_HOUR).toInt()
+        val minutes = (totalMinutes % MINUTES_PER_HOUR).toInt()
+        val context = binding.root.context
+        return when {
+            hours > 0 -> context.getString(R.string.player_duration_hours_minutes, hours, minutes)
+            else -> context.getString(R.string.player_duration_minutes, minutes)
+        }
     }
 
     private fun updateSleepTimer() {
@@ -164,6 +215,8 @@ class AudiobookChapterHelper(
 
     companion object {
         private const val PROGRESS_MAX = 1000
+        private const val SECONDS_PER_MINUTE = 60
+        private const val MINUTES_PER_HOUR = 60
         private const val SLEEP_OFF = 0
         private const val SLEEP_END_OF_CHAPTER = -1
         private val SLEEP_MINUTES = listOf(15, 30, 45, 60)

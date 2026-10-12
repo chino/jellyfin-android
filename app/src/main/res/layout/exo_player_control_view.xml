@@ -136,31 +136,64 @@
             android:id="@+id/audiobook_chapter_title"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:background="?selectableItemBackground"
+            android:drawableEnd="@drawable/ic_playlist"
+            android:drawablePadding="8dp"
+            android:drawableTint="?android:textColorPrimary"
             android:ellipsize="end"
+            android:gravity="center_vertical"
             android:maxLines="1"
+            android:paddingVertical="4dp"
             android:textColor="?android:textColorPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
             tools:text="3/21 · Chapter Three" />
 
-        <ProgressBar
-            android:id="@+id/audiobook_chapter_progress"
-            style="?android:attr/progressBarStyleHorizontal"
-            android:layout_width="match_parent"
-            android:layout_height="4dp"
-            android:layout_marginTop="6dp"
-            android:layout_marginBottom="6dp"
-            android:max="1000"
-            android:progressTint="?colorAccent"
-            tools:progress="400" />
-
-        <androidx.appcompat.widget.AppCompatTextView
-            android:id="@+id/audiobook_time_left"
+        <androidx.appcompat.widget.AppCompatSeekBar
+            android:id="@+id/audiobook_chapter_seek_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="?android:textColorSecondary"
-            android:textSize="13sp"
-            tools:text="12:04 left in chapter · 7:38:10 left in book" />
+            android:layout_marginTop="4dp"
+            android:max="1000"
+            android:progressBackgroundTint="@color/playback_timebar_unplayed"
+            android:progressTint="?colorAccent"
+            android:thumbTint="?colorAccent"
+            tools:progress="400" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/audiobook_chapter_elapsed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="13sp"
+                tools:text="08:17" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/audiobook_time_left"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="13sp"
+                tools:text="7h 43m left" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/audiobook_chapter_remaining"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFeatureSettings="tnum"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="13sp"
+                tools:text="−03:47" />
+        </LinearLayout>
 
         <androidx.appcompat.widget.AppCompatTextView
             android:id="@+id/audiobook_sleep_timer"
