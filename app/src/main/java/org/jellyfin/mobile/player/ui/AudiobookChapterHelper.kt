@@ -4,7 +4,9 @@ import android.text.format.DateUtils
 import android.view.Menu
 import android.widget.PopupMenu
 import android.widget.SeekBar
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
+import androidx.core.view.updateLayoutParams
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.player.SleepTimer
@@ -77,8 +79,28 @@ class AudiobookChapterHelper(
         binding.exoDuration.isVisible = !hasChapters
         binding.chaptersButton.isVisible = hasChapters
         binding.sleepTimerButton.isVisible = mediaSource.isAudiobook
+        placePlaybackControls(belowSeekBar = mediaSource.isAudiobook)
         chapterMenu = if (hasChapters) createChapterMenu() else null
         if (!mediaSource.isAudiobook) sleepTimer.cancel()
+    }
+
+    /**
+     * Audiobooks show the play controls in a row below the seek bar, like other audiobook apps, so the cover
+     * stays visible. Videos keep them in the middle of the screen.
+     */
+    private fun placePlaybackControls(belowSeekBar: Boolean) {
+        val unset = ConstraintLayout.LayoutParams.UNSET
+        val parent = ConstraintLayout.LayoutParams.PARENT_ID
+        val margin = binding.root.resources.getDimensionPixelSize(R.dimen.audiobook_controls_margin)
+        binding.playPauseContainer.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            topToTop = if (belowSeekBar) unset else parent
+            bottomToBottom = if (belowSeekBar) unset else parent
+            bottomToTop = if (belowSeekBar) R.id.controls_barrier else unset
+            bottomMargin = if (belowSeekBar) margin else 0
+        }
+        binding.seekBarContainer.updateLayoutParams<ConstraintLayout.LayoutParams> {
+            bottomToTop = if (belowSeekBar) R.id.play_pause_container else R.id.controls_barrier
+        }
     }
 
     /**
