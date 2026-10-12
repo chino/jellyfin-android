@@ -18,6 +18,7 @@ import androidx.core.view.updateLayoutParams
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.TimeBar
 import org.jellyfin.mobile.R
+import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
 import org.jellyfin.mobile.player.qualityoptions.QualityOptionsProvider
@@ -26,6 +27,7 @@ import org.jellyfin.mobile.player.source.LocalJellyfinMediaSource
 import org.jellyfin.mobile.player.source.RemoteJellyfinMediaSource
 import org.jellyfin.mobile.player.ui.playermenuhelper.PlayerMenuHelper
 import org.jellyfin.mobile.player.ui.playermenuhelper.SkipMediaSegmentButton
+import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.ChapterInfo
 import org.jellyfin.sdk.model.api.MediaStream
 import org.koin.core.component.KoinComponent
@@ -45,6 +47,7 @@ class PlayerMenus(
 
     private val context = playerBinding.root.context
     private val qualityOptionsProvider: QualityOptionsProvider by inject()
+    private val appPreferences: AppPreferences by inject()
     private val playPauseContainer: View by playerControlsBinding::playPauseContainer
     private val previousButton: ImageButton by playerControlsBinding::previousButton
     private val nextButton: ImageButton by playerControlsBinding::nextButton
@@ -239,16 +242,21 @@ class PlayerMenus(
     }
 
     private fun updateButtonIcons() {
-        val outerPrevious = R.drawable.ic_skip_previous_chapter_black_32dp.takeIf { audiobookHasChapters }
-        val outerNext = R.drawable.ic_skip_next_chapter_black_32dp.takeIf { audiobookHasChapters }
-        previousButton.setImageResource(outerPrevious ?: R.drawable.ic_skip_previous_black_32dp)
-        nextButton.setImageResource(outerNext ?: R.drawable.ic_skip_next_black_32dp)
-        previousChapterButton.setImageResource(
-            if (isAudiobook) R.drawable.ic_rewind_black_32dp else R.drawable.ic_skip_previous_chapter_black_32dp,
-        )
-        nextChapterButton.setImageResource(
-            if (isAudiobook) R.drawable.ic_fast_forward_black_32dp else R.drawable.ic_skip_next_chapter_black_32dp,
-        )
+        // Audiobooks follow Audible: plain skip icons step chapters, circular arrows with the seconds skip time
+        if (isAudiobook) {
+            previousButton.setImageResource(R.drawable.ic_skip_previous_black_32dp)
+            nextButton.setImageResource(R.drawable.ic_skip_next_black_32dp)
+            val resources = context.resources
+            val back = (appPreferences.audiobookSkipBackMs / Constants.MILLIS_PER_SECOND).toInt()
+            val forward = (appPreferences.audiobookSkipForwardMs / Constants.MILLIS_PER_SECOND).toInt()
+            previousChapterButton.setImageDrawable(SkipSecondsDrawable(resources, back, forward = false))
+            nextChapterButton.setImageDrawable(SkipSecondsDrawable(resources, forward, forward = true))
+        } else {
+            previousButton.setImageResource(R.drawable.ic_skip_previous_black_32dp)
+            nextButton.setImageResource(R.drawable.ic_skip_next_black_32dp)
+            previousChapterButton.setImageResource(R.drawable.ic_skip_previous_chapter_black_32dp)
+            nextChapterButton.setImageResource(R.drawable.ic_skip_next_chapter_black_32dp)
+        }
     }
 
     private fun updateLayoutConstraints(hasChapters: Boolean) {

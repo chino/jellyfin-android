@@ -1,5 +1,7 @@
 package org.jellyfin.mobile.player.ui
 
+import android.content.res.ColorStateList
+import android.graphics.Color
 import android.text.format.DateUtils
 import android.view.Menu
 import android.widget.PopupMenu
@@ -7,6 +9,7 @@ import android.widget.SeekBar
 import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
+import androidx.core.widget.ImageViewCompat
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.player.SleepTimer
@@ -32,6 +35,7 @@ class AudiobookChapterHelper(
     private var runTime: Duration = Duration.ZERO
     private var chapterMenu: PopupMenu? = null
     private val sleepTimerMenu = createSleepTimerMenu()
+    private val videoPlayTint = ImageViewCompat.getImageTintList(binding.exoPlayPause)
 
     /** Start and end of the chapter shown, used to turn the seek bar position into a playback position. */
     private var chapterStart: Duration = Duration.ZERO
@@ -101,6 +105,14 @@ class AudiobookChapterHelper(
         binding.seekBarContainer.updateLayoutParams<ConstraintLayout.LayoutParams> {
             bottomToTop = if (belowSeekBar) R.id.play_pause_container else R.id.controls_barrier
         }
+        // Audiobooks get a solid round play button, like Audible
+        binding.exoPlayPause.setBackgroundResource(
+            if (belowSeekBar) R.drawable.audiobook_play_background else R.drawable.ripple_background_circular,
+        )
+        ImageViewCompat.setImageTintList(
+            binding.exoPlayPause,
+            if (belowSeekBar) ColorStateList.valueOf(Color.BLACK) else videoPlayTint,
+        )
     }
 
     /**
