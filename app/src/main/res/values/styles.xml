@@ -16,6 +16,13 @@
         <item name="postSplashScreenTheme">@style/AppTheme</item>
     </style>
 
+    <!-- Full-screen overlay dialogs, such as the audiobook bookmarks list -->
+    <style name="AppTheme.FullScreenDialog" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:windowBackground">@color/theme_background</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
+    </style>
+
     <!-- Settings theme -->
     <style name="AppTheme.Settings" />
 

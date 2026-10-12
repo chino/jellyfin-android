@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/theme_background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp">
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/bookmarks_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ripple_background_circular"
+            android:contentDescription="@string/bookmarks_close"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:id="@+id/bookmarks_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.AppCompat.Title"
+            tools:text="All These Worlds" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/bookmarks_sort"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ripple_background_circular"
+            android:contentDescription="@string/bookmarks_sort"
+            android:src="@drawable/ic_sort" />
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/bookmarks_add"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ripple_background_circular"
+            android:contentDescription="@string/bookmark_add_here"
+            android:src="@drawable/ic_add" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/bookmarks_empty"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="24dp"
+        android:text="@string/bookmarks_empty"
+        android:textColor="?android:textColorSecondary"
+        android:visibility="gone" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:id="@+id/bookmarks_list"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="16dp" />
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="16dp"
+    android:background="@drawable/bookmark_card_background"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/bookmark_created"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:letterSpacing="0.05"
+        android:textAllCaps="true"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/bookmark_more"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        tools:text="Oct 12, 2026, 7:14 PM" />
+
+    <TextView
+        android:id="@+id/bookmark_chapter"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="?android:textColorPrimary"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toStartOf="@id/bookmark_more"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bookmark_created"
+        tools:text="Chapter 4 of 77 · 3. Trouble Brewing" />
+
+    <TextView
+        android:id="@+id/bookmark_times"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:fontFeatureSettings="tnum"
+        android:textColor="?android:textColorSecondary"
+        android:textSize="15sp"
+        app:layout_constraintEnd_toStartOf="@id/bookmark_more"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bookmark_chapter"
+        tools:text="02:13 in chapter · 1:23:45 in book" />
+
+    <TextView
+        android:id="@+id/bookmark_note"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:textColor="?android:textColorPrimary"
+        android:textSize="15sp"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bookmark_times"
+        tools:text="Bob meets the Deltans"
+        tools:visibility="visible" />
+
+    <androidx.appcompat.widget.AppCompatImageButton
+        android:id="@+id/bookmark_more"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="@drawable/ripple_background_circular"
+        android:contentDescription="@string/bookmark_options"
+        android:src="@drawable/ic_more_vert"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/bookmark_chapter" />
+
+    <TextView
+        android:id="@+id/bookmark_play"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:background="@drawable/bookmark_play_background"
+        android:paddingHorizontal="20dp"
+        android:paddingVertical="10dp"
+        android:text="@string/bookmark_play_from_here"
+        android:textColor="@color/theme_background"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/bookmark_note" />
+</androidx.constraintlayout.widget.ConstraintLayout>
