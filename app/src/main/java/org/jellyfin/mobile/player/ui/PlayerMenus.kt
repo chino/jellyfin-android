@@ -46,10 +46,10 @@ class PlayerMenus(
     private val context = playerBinding.root.context
     private val qualityOptionsProvider: QualityOptionsProvider by inject()
     private val playPauseContainer: View by playerControlsBinding::playPauseContainer
-    private val previousButton: View by playerControlsBinding::previousButton
-    private val nextButton: View by playerControlsBinding::nextButton
-    private val previousChapterButton: View by playerControlsBinding::previousChapterButton
-    private val nextChapterButton: View by playerControlsBinding::nextChapterButton
+    private val previousButton: ImageButton by playerControlsBinding::previousButton
+    private val nextButton: ImageButton by playerControlsBinding::nextButton
+    private val previousChapterButton: ImageButton by playerControlsBinding::previousChapterButton
+    private val nextChapterButton: ImageButton by playerControlsBinding::nextChapterButton
     private val lockScreenButton: View by playerControlsBinding::lockScreenButton
     private val audioStreamsButton: View by playerControlsBinding::audioStreamsButton
     private val subtitlesButton: ImageButton by playerControlsBinding::subtitlesButton
@@ -75,6 +75,8 @@ class PlayerMenus(
 
     private var subtitleCount = 0
     private var subtitlesEnabled = false
+    private var isAudiobook = false
+    private var audiobookHasChapters = false
 
     private val trickplayHelper = TrickplayHelper(
         trickplayContainer,
@@ -99,17 +101,18 @@ class PlayerMenus(
             ) = trickplayHelper.onScrubStop()
         })
 
+        // Audiobooks swap roles: outer buttons step chapters, inner ones skip seconds like Audible
         previousButton.setOnClickListener {
-            fragment.onSkipToPrevious()
+            if (audiobookHasChapters) fragment.onPreviousChapter() else fragment.onSkipToPrevious()
         }
         nextButton.setOnClickListener {
-            fragment.onSkipToNext()
+            if (audiobookHasChapters) fragment.onNextChapter() else fragment.onSkipToNext()
         }
         previousChapterButton.setOnClickListener {
-            fragment.onPreviousChapter()
+            if (isAudiobook) fragment.onRewind() else fragment.onPreviousChapter()
         }
         nextChapterButton.setOnClickListener {
-            fragment.onNextChapter()
+            if (isAudiobook) fragment.onFastForward() else fragment.onNextChapter()
         }
         lockScreenButton.setOnClickListener {
             fragment.playerLockScreenHelper.lockScreen()
@@ -156,13 +159,18 @@ class PlayerMenus(
     }
 
     fun onQueueItemChanged(mediaSource: JellyfinMediaSource, hasNext: Boolean) {
+        val chapters = mediaSource.item?.chapters
+        isAudiobook = mediaSource.isAudiobook
+        audiobookHasChapters = isAudiobook && !chapters.isNullOrEmpty()
+
         // previousButton is always enabled and will rewind if at the start of the queue
-        nextButton.isEnabled = hasNext
+        // nextChapter() past the last chapter falls through to the next queue item, so it never needs disabling
+        nextButton.isEnabled = hasNext || audiobookHasChapters
 
         trickplayHelper.onMediaSourceChanged(mediaSource)
 
-        val chapters = mediaSource.item?.chapters
-        updateLayoutConstraints(!chapters.isNullOrEmpty())
+        updateButtonIcons()
+        updateLayoutConstraints(isAudiobook || !chapters.isNullOrEmpty())
         val runTimeTicks = mediaSource.item?.runTimeTicks
         setChapterMarkings(chapters, runTimeTicks)
 
@@ -228,6 +236,19 @@ class PlayerMenus(
             videoTracksInfo,
             audioTracksInfo,
         ).joinToString("\n\n")
+    }
+
+    private fun updateButtonIcons() {
+        val outerPrevious = R.drawable.ic_skip_previous_chapter_black_32dp.takeIf { audiobookHasChapters }
+        val outerNext = R.drawable.ic_skip_next_chapter_black_32dp.takeIf { audiobookHasChapters }
+        previousButton.setImageResource(outerPrevious ?: R.drawable.ic_skip_previous_black_32dp)
+        nextButton.setImageResource(outerNext ?: R.drawable.ic_skip_next_black_32dp)
+        previousChapterButton.setImageResource(
+            if (isAudiobook) R.drawable.ic_rewind_black_32dp else R.drawable.ic_skip_previous_chapter_black_32dp,
+        )
+        nextChapterButton.setImageResource(
+            if (isAudiobook) R.drawable.ic_fast_forward_black_32dp else R.drawable.ic_skip_next_chapter_black_32dp,
+        )
     }
 
     private fun updateLayoutConstraints(hasChapters: Boolean) {
