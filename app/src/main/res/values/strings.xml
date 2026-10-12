@@ -116,7 +116,8 @@
     <string name="activity_name_settings">Jellyfin Settings</string>
     <string name="pref_category_music_player">Music player</string>
     <string name="pref_category_audiobook_player">Audiobook settings</string>
-    <string name="pref_audiobook_skip_length_title">Audiobook skip length</string>
+    <string name="pref_audiobook_skip_back_title">Audiobook skip back</string>
+    <string name="pref_audiobook_skip_forward_title">Audiobook skip forward</string>
     <string name="pref_audiobook_skip_length_seconds">%1$d seconds</string>
     <string name="pref_music_notification_always_dismissible_title">Dismissible player notification</string>
     <string name="pref_music_notification_always_dismissible_summary_off">The notification can only be dismissed when playback is paused</string>

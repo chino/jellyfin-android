@@ -638,16 +638,18 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
     }
 
     fun rewind() {
-        playerOrNull?.seekToOffset(-audiobookSeekTimeOr(displayPreferences.skipBackLength))
+        val length = audiobookSeekTimeOr(appPreferences.audiobookSkipBackMs, displayPreferences.skipBackLength)
+        playerOrNull?.seekToOffset(-length)
     }
 
     fun fastForward() {
-        playerOrNull?.seekToOffset(audiobookSeekTimeOr(displayPreferences.skipForwardLength))
+        val length = audiobookSeekTimeOr(appPreferences.audiobookSkipForwardMs, displayPreferences.skipForwardLength)
+        playerOrNull?.seekToOffset(length)
     }
 
-    /** Audiobooks use their own skip length (30 seconds by default, like Audible), not the video one. */
-    private fun audiobookSeekTimeOr(videoLength: Long): Long =
-        if (mediaSourceOrNull?.isAudiobook == true) appPreferences.audiobookSkipLengthMs else videoLength
+    /** Audiobooks use their own skip lengths (30 seconds by default, like Audible), not the video ones. */
+    private fun audiobookSeekTimeOr(audiobookLength: Long, videoLength: Long): Long =
+        if (mediaSourceOrNull?.isAudiobook == true) audiobookLength else videoLength
 
     fun seekByOffset(offsetMs: Long) {
         playerOrNull?.seekToOffset(offsetMs)

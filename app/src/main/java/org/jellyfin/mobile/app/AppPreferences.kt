@@ -109,9 +109,15 @@ class AppPreferences(context: Context) {
         get() = sharedPreferences.getString(Constants.PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER, "3.0")
             ?.toFloatOrNull() ?: Constants.HOLD_SPEEDUP_MULTIPLIER
 
-    val audiobookSkipLengthMs: Long
-        get() = sharedPreferences.getString(Constants.PREF_AUDIOBOOK_SKIP_SECONDS, null)
-            ?.toLongOrNull()?.times(Constants.MILLIS_PER_SECOND) ?: Constants.AUDIOBOOK_SEEK_TIME_MS
+    val audiobookSkipBackMs: Long
+        get() = audiobookSkipMs(Constants.PREF_AUDIOBOOK_SKIP_BACK_SECONDS)
+
+    val audiobookSkipForwardMs: Long
+        get() = audiobookSkipMs(Constants.PREF_AUDIOBOOK_SKIP_FORWARD_SECONDS)
+
+    private fun audiobookSkipMs(key: String): Long =
+        sharedPreferences.getString(key, null)?.toLongOrNull()?.times(Constants.MILLIS_PER_SECOND)
+            ?: Constants.AUDIOBOOK_SEEK_TIME_MS
 
     val exoPlayerEnableSpeedLock: Boolean
         get() = sharedPreferences.getBoolean(Constants.PREF_EXOPLAYER_ENABLE_SPEED_LOCK, true)
