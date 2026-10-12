@@ -104,6 +104,16 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
             summaryRes = R.string.pref_music_notification_always_dismissible_summary_off
             summaryOnRes = R.string.pref_music_notification_always_dismissible_summary_on
         }
+        categoryHeader(PREF_CATEGORY_AUDIOBOOK_PLAYER) {
+            titleRes = R.string.pref_category_audiobook_player
+        }
+        val audiobookSkipOptions = Constants.AUDIOBOOK_SKIP_SECONDS_OPTIONS.map { seconds ->
+            SelectionItem(seconds.toString(), getString(R.string.pref_audiobook_skip_length_seconds, seconds))
+        }
+        singleChoice(Constants.PREF_AUDIOBOOK_SKIP_SECONDS, audiobookSkipOptions) {
+            titleRes = R.string.pref_audiobook_skip_length_title
+            initialSelection = (Constants.AUDIOBOOK_SEEK_TIME_MS / Constants.MILLIS_PER_SECOND).toString()
+        }
         categoryHeader(PREF_CATEGORY_VIDEO_PLAYER) {
             titleRes = R.string.pref_category_video_player
         }
@@ -333,6 +343,7 @@ class SettingsFragment : Fragment(), BackPressInterceptor {
 
     companion object {
         const val PREF_CATEGORY_MUSIC_PLAYER = "pref_category_music"
+        const val PREF_CATEGORY_AUDIOBOOK_PLAYER = "pref_category_audiobook"
         const val PREF_CATEGORY_VIDEO_PLAYER = "pref_category_video"
         const val PREF_CATEGORY_DOWNLOADS = "pref_category_downloads"
     }

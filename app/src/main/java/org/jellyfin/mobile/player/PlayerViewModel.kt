@@ -645,9 +645,9 @@ class PlayerViewModel(application: Application) : AndroidViewModel(application),
         playerOrNull?.seekToOffset(audiobookSeekTimeOr(displayPreferences.skipForwardLength))
     }
 
-    /** Audiobooks skip 30 seconds like Audible, ignoring the video skip lengths. */
+    /** Audiobooks use their own skip length (30 seconds by default, like Audible), not the video one. */
     private fun audiobookSeekTimeOr(videoLength: Long): Long =
-        if (mediaSourceOrNull?.isAudiobook == true) Constants.AUDIOBOOK_SEEK_TIME_MS else videoLength
+        if (mediaSourceOrNull?.isAudiobook == true) appPreferences.audiobookSkipLengthMs else videoLength
 
     fun seekByOffset(offsetMs: Long) {
         playerOrNull?.seekToOffset(offsetMs)

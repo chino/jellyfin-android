@@ -40,6 +40,7 @@ object Constants {
     const val PREF_EXOPLAYER_ALLOW_BACKGROUND_AUDIO = "pref_exoplayer_allow_background_audio"
     const val PREF_EXOPLAYER_ALLOW_HORIZONTAL_GESTURE = "pref_exoplayer_allow_horizontal_gesture"
     const val PREF_EXOPLAYER_HOLD_SPEED_MULTIPLIER = "pref_exoplayer_hold_speed_multiplier"
+    const val PREF_AUDIOBOOK_SKIP_SECONDS = "pref_audiobook_skip_seconds"
     const val PREF_EXOPLAYER_ENABLE_SPEED_LOCK = "pref_exoplayer_enable_speed_lock"
     const val PREF_EXOPLAYER_DIRECT_PLAY_ASS = "pref_exoplayer_direct_play_ass"
     const val PREF_EXOPLAYER_SMART_LOCAL_PLAYBACK = "pref_exoplayer_smart_local_playback"
@@ -121,7 +122,9 @@ object Constants {
     const val DISPLAY_PREFERENCES_SKIP_BACK_LENGTH = "skipBackLength"
     const val DISPLAY_PREFERENCES_SKIP_FORWARD_LENGTH = "skipForwardLength"
     const val DEFAULT_SEEK_TIME_MS = 10000L
+    const val MILLIS_PER_SECOND = 1000L
     const val AUDIOBOOK_SEEK_TIME_MS = 30_000L
+    val AUDIOBOOK_SKIP_SECONDS_OPTIONS = listOf(10, 15, 30, 45, 60, 90) // same choices as Audible
     const val MAX_SKIP_TO_PREV_MS = 3000L
     const val DOUBLE_TAP_RIPPLE_DURATION_MS = 100L
     const val FULL_SWIPE_RANGE_SCREEN_RATIO = 0.66f
