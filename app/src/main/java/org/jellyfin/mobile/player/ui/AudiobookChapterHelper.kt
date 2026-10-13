@@ -101,10 +101,22 @@ class AudiobookChapterHelper(
     /** Centers an audiobook's cover between the toolbar and the chapter row, never under the toolbar. */
     private fun fitArtwork() {
         val frame = contentFrame ?: return
-        val spaceTop = binding.toolbar.bottom
-        val spaceCenter = (spaceTop + binding.audiobookChapterPanel.top) / 2
-        val shift = maxOf(spaceCenter - (frame.top + frame.bottom) / 2, spaceTop - frame.top)
-        frame.translationY = if (isAudiobook) shift.toFloat() else 0f
+        if (!isAudiobook) {
+            frame.translationY = 0f
+            return
+        }
+        // Compare on-screen positions: the cover and the controls sit in differently padded parents
+        val frameTop = screenY(frame) - frame.translationY
+        val spaceTop = screenY(binding.toolbar) + binding.toolbar.height
+        val spaceCenter = (spaceTop + screenY(binding.audiobookChapterPanel)) / 2
+        val shift = maxOf(spaceCenter - (frameTop + frame.height / 2f), spaceTop - frameTop)
+        frame.translationY = shift
+    }
+
+    private fun screenY(view: View): Float {
+        val location = IntArray(2)
+        view.getLocationOnScreen(location)
+        return location[1].toFloat()
     }
 
     private fun placePlaybackControls(belowSeekBar: Boolean) {
