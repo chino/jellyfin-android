@@ -232,7 +232,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         audiobookChapterHelper = AudiobookChapterHelper(
             playerControlsBinding,
             viewModel.sleepTimer,
-            playerView.findViewById(Media3R.id.exo_artwork),
+            playerView.findViewById(Media3R.id.exo_content_frame),
         ) { position ->
             viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds)
         }
