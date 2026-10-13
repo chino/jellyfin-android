@@ -1,5 +1,6 @@
 package org.jellyfin.mobile.data.audiobook
 
+import androidx.room.AutoMigration
 import androidx.room.Database
 import androidx.room.RoomDatabase
 
@@ -9,7 +10,8 @@ import androidx.room.RoomDatabase
  */
 @Database(
     entities = [BookmarkEntity::class, ListeningSessionEntity::class],
-    version = 1,
+    version = 2,
+    autoMigrations = [AutoMigration(from = 1, to = 2)],
 )
 abstract class AudiobookDatabase : RoomDatabase() {
     abstract val audiobookDao: AudiobookDao

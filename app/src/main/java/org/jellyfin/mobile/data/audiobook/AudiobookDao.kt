@@ -15,6 +15,9 @@ interface AudiobookDao {
     @Query("UPDATE bookmark SET note = :note WHERE id = :id")
     suspend fun updateBookmarkNote(id: Long, note: String?)
 
+    @Query("UPDATE bookmark SET position_ms = :startMs WHERE id = :id")
+    suspend fun updateClipStart(id: Long, startMs: Long)
+
     @Query("DELETE FROM bookmark WHERE id = :id")
     suspend fun deleteBookmark(id: Long)
 

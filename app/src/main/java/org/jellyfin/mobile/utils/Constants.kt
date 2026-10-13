@@ -125,6 +125,7 @@ object Constants {
     const val DEFAULT_SEEK_TIME_MS = 10000L
     const val MILLIS_PER_SECOND = 1000L
     const val AUDIOBOOK_SEEK_TIME_MS = 30_000L
+    const val AUDIOBOOK_CLIP_SECONDS = 30 // a new clip covers this much before the current position
     val AUDIOBOOK_SKIP_SECONDS_OPTIONS = listOf(10, 15, 30, 45, 60, 90) // same choices as Audible
     const val MAX_SKIP_TO_PREV_MS = 3000L
     const val DOUBLE_TAP_RIPPLE_DURATION_MS = 100L

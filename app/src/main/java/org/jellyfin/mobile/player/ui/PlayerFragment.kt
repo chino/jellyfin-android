@@ -39,6 +39,7 @@ import org.jellyfin.mobile.app.AppPreferences
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.databinding.FragmentPlayerBinding
 import org.jellyfin.mobile.player.PlayerException
+import org.jellyfin.mobile.player.AudiobookClipExporter
 import org.jellyfin.mobile.player.PlayerViewModel
 import org.jellyfin.mobile.player.interaction.PlayOptions
 import org.jellyfin.mobile.player.interaction.PlayerWebPreferences
@@ -234,9 +235,9 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         audiobookBookmarksHelper = AudiobookBookmarksHelper(
             binding = playerControlsBinding,
             audiobookDao = get(),
+            clipExporter = AudiobookClipExporter(requireContext(), get()),
             scope = viewLifecycleOwner.lifecycleScope,
-            currentPosition = { viewModel.playerOrNull?.currentPosition?.milliseconds },
-            onSeek = { position -> viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds) },
+            player = { viewModel.playerOrNull },
         )
         viewModel.queueManager.currentMediaSource.value?.let { mediaSource ->
             audiobookChapterHelper?.onMediaSourceChanged(mediaSource)

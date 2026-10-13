@@ -16,5 +16,7 @@ data class BookmarkEntity(
     @ColumnInfo(name = "item_id") val itemId: String,
     @ColumnInfo(name = "position_ms") val positionMs: Long,
     @ColumnInfo(name = "note") val note: String?,
+    /** Set for a clip: the bookmark covers [positionMs] up to here instead of a single point. */
+    @ColumnInfo(name = "end_position_ms") val endPositionMs: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 )
