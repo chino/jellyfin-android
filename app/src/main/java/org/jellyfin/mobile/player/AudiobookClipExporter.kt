@@ -28,10 +28,10 @@ class AudiobookClipExporter(
     private val downloadDao: DownloadDao,
 ) {
     /**
-     * Writes the clip from [start] to [end] and returns a content URI other apps can read, or null when
+     * Writes the clip from [start] to [end] as [fileName].m4a and returns a content URI other apps can read, or null when
      * the book isn't downloaded or its audio can't be copied into an .m4a file.
      */
-    suspend fun export(itemId: UUID, title: String?, start: Duration, end: Duration): Uri? =
+    suspend fun export(itemId: UUID, fileName: String, start: Duration, end: Duration): Uri? =
         withContext(Dispatchers.IO) {
             val download = downloadDao.getDownloadByItemId(itemId) ?: return@withContext null
             val source = downloadDao.getFiles(download.id).find { it.type == DownloadFileType.ITEM }
@@ -40,8 +40,8 @@ class AudiobookClipExporter(
             val dir = File(context.cacheDir, CLIPS_DIR).apply { mkdirs() }
             // Only the latest clip is kept; the receiving app has its own copy once shared
             dir.listFiles()?.forEach(File::delete)
-            val name = (title ?: "Clip").replace(UNSAFE_FILE_CHARS, "_").take(MAX_NAME_LENGTH)
-            val output = File(dir, "$name ${start.inWholeSeconds}s.m4a")
+            val name = fileName.replace(UNSAFE_FILE_CHARS, "_").take(MAX_NAME_LENGTH).trim()
+            val output = File(dir, "$name.m4a")
 
             try {
                 copyAudio(source.uri, output, start, end)
@@ -112,8 +112,8 @@ class AudiobookClipExporter(
     companion object {
         const val AUTHORITY = "${BuildConfig.APPLICATION_ID}.clips"
         private const val CLIPS_DIR = "clips"
-        private const val MAX_NAME_LENGTH = 60
+        private const val MAX_NAME_LENGTH = 120
         private const val DEFAULT_BUFFER_SIZE = 1024 * 1024
-        private val UNSAFE_FILE_CHARS = Regex("[^A-Za-z0-9 ._-]")
+        private val UNSAFE_FILE_CHARS = Regex("[^\\p{L}\\p{N} ._,'()&-]")
     }
 }

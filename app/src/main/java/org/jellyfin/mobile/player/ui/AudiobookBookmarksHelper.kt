@@ -21,6 +21,7 @@ import org.jellyfin.mobile.player.source.JellyfinMediaSource
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.ChapterInfo
 import java.util.Date
+import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
@@ -110,7 +111,7 @@ class AudiobookBookmarksHelper(
     override fun shareClip(start: Duration, end: Duration) {
         val id = itemId ?: return
         scope.launch {
-            val uri = clipExporter.export(id, title, start, end)
+            val uri = clipExporter.export(id, clipFileName(id, start), start, end)
             if (uri == null) {
                 Toast.makeText(context, R.string.clip_share_unavailable, Toast.LENGTH_LONG).show()
                 return@launch
@@ -138,6 +139,24 @@ class AudiobookBookmarksHelper(
             val id = audiobookDao.insertBookmark(clip)
             onSaved(clip.copy(id = id))
         }
+    }
+
+    /**
+     * "Title - Chapter 4 We've Lost - 12m30s": where the clip starts, as time into its chapter, or into the
+     * book when there are no chapters.
+     */
+    private fun clipFileName(itemId: UUID, start: Duration): String {
+        val book = book(itemId)
+        val chapter = book.chapterShortLabel(context, start)
+        val offset = start - (book.chapterStart(start) ?: Duration.ZERO)
+        val hms = offset.toComponents { hours, minutes, seconds, _ ->
+            when {
+                hours > 0 -> String.format(Locale.ROOT, "%dh%02dm%02ds", hours, minutes, seconds)
+                minutes > 0 -> String.format(Locale.ROOT, "%dm%02ds", minutes, seconds)
+                else -> "${seconds}s"
+            }
+        }
+        return listOfNotNull(title ?: context.getString(R.string.clip_play), chapter, hms).joinToString(" - ")
     }
 
     /** Shows "Clip saved" with an Edit button for a few seconds. */

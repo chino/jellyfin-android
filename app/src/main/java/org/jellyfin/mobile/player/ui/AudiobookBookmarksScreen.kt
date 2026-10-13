@@ -48,6 +48,22 @@ class AudiobookBookmarksScreen(
         fun chapterStart(position: Duration): Duration? =
             chapters.getOrNull(chapterIndex(position))?.startPositionTicks?.ticks
 
+        private companion object {
+            val LEADING_NUMBER = Regex("^\\d+[.:)\\s-]*")
+        }
+
+        /** "Chapter 4 We've Lost" for file names, without the name when it is empty or only a number. */
+        fun chapterShortLabel(context: Context, position: Duration): String? {
+            val index = chapterIndex(position)
+            // Names like "2.We've Lost" already carry the number
+            val name = chapters.getOrNull(index)?.name?.trim()?.replace(LEADING_NUMBER, "") ?: return null
+            return if (name.isEmpty() || name.all(Char::isDigit)) {
+                context.getString(R.string.clip_file_chapter_unnamed, index + 1)
+            } else {
+                context.getString(R.string.clip_file_chapter, index + 1, name)
+            }
+        }
+
         /** "Chapter 4 of 77 · Name", without the name when it is empty or only a number. */
         fun chapterLabel(context: Context, position: Duration): String? {
             val index = chapterIndex(position)
