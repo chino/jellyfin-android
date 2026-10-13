@@ -5,7 +5,6 @@ import android.graphics.Color
 import android.text.format.DateUtils
 import android.view.Menu
 import android.view.View
-import android.view.ViewGroup
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -99,25 +98,12 @@ class AudiobookChapterHelper(
      * Audiobooks show the play controls in a row below the seek bar, like other audiobook apps, so the cover
      * stays visible. Videos keep them in the middle of the screen.
      */
-    /**
-     * Fits an audiobook's cover into the space between the toolbar and the controls, so they don't cover it.
-     * The player's content frame keeps the cover's aspect ratio, so it is the frame that gets margins: padding
-     * the cover itself would squash it.
-     */
+    /** Slides an audiobook's cover up just enough to clear the controls, without going under the toolbar. */
     private fun fitArtwork() {
         val frame = contentFrame ?: return
-        val top = if (isAudiobook) binding.toolbar.bottom else 0
-        val bottom = if (isAudiobook) (binding.root.height - binding.audiobookScrimFade.top).coerceAtLeast(0) else 0
-        val params = frame.layoutParams as? ViewGroup.MarginLayoutParams ?: return
-        if (params.topMargin != top || params.bottomMargin != bottom) {
-            // Layout changes during a layout pass need a fresh one, so post it
-            frame.post {
-                frame.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                    topMargin = top
-                    bottomMargin = bottom
-                }
-            }
-        }
+        val overlap = frame.bottom - binding.audiobookScrimFade.top
+        val room = frame.top - binding.toolbar.bottom
+        frame.translationY = if (isAudiobook) -minOf(overlap, room).coerceAtLeast(0).toFloat() else 0f
     }
 
     private fun placePlaybackControls(belowSeekBar: Boolean) {
