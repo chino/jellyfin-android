@@ -36,7 +36,8 @@ class AudiobookChapterHelper(
     private var isAudiobook = false
     private var chapters: List<ChapterInfo> = emptyList()
     private var runTime: Duration = Duration.ZERO
-    private var chapterMenu: PopupMenu? = null
+    private var title: String? = null
+    private var position: Duration = Duration.ZERO
     private val sleepTimerMenu = createSleepTimerMenu()
     private val videoPlayTint = ImageViewCompat.getImageTintList(binding.exoPlayPause)
 
@@ -47,7 +48,11 @@ class AudiobookChapterHelper(
 
     init {
         binding.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitArtwork() }
-        binding.audiobookChapterTitle.setOnClickListener { chapterMenu?.show() }
+        binding.audiobookChapterTitle.setOnClickListener {
+            if (chapters.isNotEmpty()) {
+                AudiobookChaptersScreen(binding.root.context, title, chapters, runTime, onSeek).show(position)
+            }
+        }
         binding.sleepTimerButton.setOnClickListener { sleepTimerMenu.show() }
         binding.audiobookChapterSeekBar.setOnSeekBarChangeListener(
             object : SeekBar.OnSeekBarChangeListener {
@@ -73,6 +78,7 @@ class AudiobookChapterHelper(
             else -> emptyList()
         }
         runTime = mediaSource.runTime
+        title = mediaSource.item?.name
 
         val hasChapters = chapters.isNotEmpty()
         binding.audiobookChapterPanel.isVisible = mediaSource.isAudiobook
@@ -90,7 +96,6 @@ class AudiobookChapterHelper(
         binding.exoDuration.isVisible = !hasChapters
         binding.sleepTimerButton.isVisible = mediaSource.isAudiobook
         placePlaybackControls(belowSeekBar = mediaSource.isAudiobook)
-        chapterMenu = if (hasChapters) createChapterMenu() else null
         if (!mediaSource.isAudiobook) sleepTimer.cancel()
     }
 
@@ -146,6 +151,7 @@ class AudiobookChapterHelper(
      * Refreshes the chapter panel for the playback [position] at the given playback [speed].
      */
     fun update(position: Duration, speed: Float) {
+        this.position = position
         updateSleepTimer()
         updateBookTimeLeft(position, speed)
         if (chapters.isEmpty()) return
@@ -171,7 +177,6 @@ class AudiobookChapterHelper(
         }
 
         // The menu is a single-choice group, so checking one item unchecks the others
-        chapterMenu?.menu?.findItem(index)?.isChecked = true
     }
 
     /** The playback position for the given chapter seek bar [progress]. */
@@ -241,18 +246,6 @@ class AudiobookChapterHelper(
                 else -> sleepTimer.start(item.itemId.minutes)
             }
             updateSleepTimer()
-            true
-        }
-    }
-
-    private fun createChapterMenu() = PopupMenu(binding.root.context, binding.audiobookChapterTitle).apply {
-        chapters.forEachIndexed { index, chapter ->
-            val start = formatDuration(chapter.startPositionTicks.ticks)
-            menu.add(Menu.NONE, index, index, "$start  ${chapterName(index)}")
-        }
-        menu.setGroupCheckable(Menu.NONE, true, true)
-        setOnMenuItemClickListener { item ->
-            onSeek(chapters[item.itemId].startPositionTicks.ticks)
             true
         }
     }

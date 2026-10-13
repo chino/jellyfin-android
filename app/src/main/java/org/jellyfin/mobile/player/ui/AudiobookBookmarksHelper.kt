@@ -1,13 +1,10 @@
 package org.jellyfin.mobile.player.ui
 
 import android.content.Intent
-import android.text.format.DateFormat
-import android.text.format.DateUtils
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatDialog
 import androidx.core.view.isVisible
 import androidx.media3.exoplayer.ExoPlayer
@@ -16,14 +13,12 @@ import kotlinx.coroutines.launch
 import org.jellyfin.mobile.R
 import org.jellyfin.mobile.data.audiobook.AudiobookDao
 import org.jellyfin.mobile.data.audiobook.BookmarkEntity
-import org.jellyfin.mobile.data.audiobook.ListeningSessionEntity
 import org.jellyfin.mobile.databinding.DialogAudiobookClipMenuBinding
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.player.AudiobookClipExporter
 import org.jellyfin.mobile.player.source.JellyfinMediaSource
 import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.ChapterInfo
-import java.util.Date
 import java.util.Locale
 import java.util.UUID
 import kotlin.time.Duration
@@ -187,44 +182,11 @@ class AudiobookBookmarksHelper(
     private fun showHistory(itemId: UUID) {
         scope.launch {
             val sessions = audiobookDao.getListeningSessions(itemId.toString(), HISTORY_LIMIT)
-            val builder = AlertDialog.Builder(context).setTitle(R.string.listening_history)
-            if (sessions.isEmpty()) {
-                builder.setMessage(R.string.listening_history_empty)
-            } else {
-                builder.setItems(sessions.map(::sessionLabel).toTypedArray()) { _, which ->
-                    seek(sessions[which].endPositionMs.milliseconds)
-                }
-            }
-            builder.setNegativeButton(R.string.listening_history_close, null).show()
+            AudiobookHistoryScreen(context, book(itemId), bookDuration(), ::seek) {
+                scope.launch { audiobookDao.deleteListeningSessions(itemId.toString()) }
+            }.show(sessions)
         }
     }
-
-    private fun sessionLabel(session: ListeningSessionEntity): String {
-        val date = Date(session.startedAt)
-        val whenText = "${DateFormat.getMediumDateFormat(context).format(date)} " +
-            DateFormat.getTimeFormat(context).format(date)
-        val end = session.endPositionMs.milliseconds
-        val book = itemId?.let(::book)
-        val chapter = book?.chapterLabel(context, end)
-        val chapterStart = book?.chapterStart(end)
-        val times = if (chapterStart != null) {
-            context.getString(
-                R.string.listening_session_chapter_times,
-                format(end - chapterStart),
-                format(session.startPositionMs.milliseconds),
-                format(end),
-            )
-        } else {
-            context.getString(
-                R.string.listening_session_times,
-                format(session.startPositionMs.milliseconds),
-                format(end),
-            )
-        }
-        return listOfNotNull(whenText, chapter, times).joinToString("\n")
-    }
-
-    private fun format(duration: Duration): String = DateUtils.formatElapsedTime(duration.inWholeSeconds)
 
     companion object {
         private const val HISTORY_LIMIT = 50

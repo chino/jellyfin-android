@@ -22,6 +22,9 @@ interface AudiobookDao {
     @Query("SELECT * FROM listening_session WHERE item_id = :itemId ORDER BY started_at DESC LIMIT :limit")
     suspend fun getListeningSessions(itemId: String, limit: Int): List<ListeningSessionEntity>
 
+    @Query("DELETE FROM listening_session WHERE item_id = :itemId")
+    suspend fun deleteListeningSessions(itemId: String)
+
     @Insert
     suspend fun insertListeningSession(session: ListeningSessionEntity): Long
 }

@@ -63,6 +63,12 @@ class AudiobookBookmarksScreen(
             }
         }
 
+        /** "Chapter 4 of 77": where the chapter sits in the book. */
+        fun chapterPosition(context: Context, position: Duration): String? {
+            val index = chapterIndex(position).takeIf { it >= 0 } ?: return null
+            return context.getString(R.string.bookmark_chapter_unnamed, index + 1, chapters.size)
+        }
+
         /** "Chapter 4 of 77 · Name", without the name when it is empty or only a number. */
         fun chapterLabel(context: Context, position: Duration): String? {
             val index = chapterIndex(position)
