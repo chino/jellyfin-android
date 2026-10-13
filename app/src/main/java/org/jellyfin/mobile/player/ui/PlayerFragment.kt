@@ -236,6 +236,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
             binding = playerControlsBinding,
             audiobookDao = get(),
             clipExporter = AudiobookClipExporter(requireContext(), get()),
+            clipPlayback = AudiobookClipPlayback(requireContext(), get()) { viewModel.playerOrNull },
             scope = viewLifecycleOwner.lifecycleScope,
             player = { viewModel.playerOrNull },
         )
@@ -541,6 +542,7 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
         _playerControlsBinding = null
         playerMenus = null
         audiobookChapterHelper = null
+        audiobookBookmarksHelper?.release()
         audiobookBookmarksHelper = null
     }
 

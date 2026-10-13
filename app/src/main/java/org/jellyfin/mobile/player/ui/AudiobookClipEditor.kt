@@ -21,8 +21,8 @@ import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Full-screen editor for one clip, like Audible's: drag the ends of the clip or nudge them a second at a time,
- * play it to hear the result, and give it a name and a note. Previewing moves the player, so closing the
- * editor puts the listener back where they were.
+ * play it to hear the result, and give it a name and a note. Previews play in a separate player, so the
+ * book keeps its place.
  */
 class AudiobookClipEditor(
     private val context: Context,
@@ -40,14 +40,11 @@ class AudiobookClipEditor(
 
     private var start = clip.positionMs
     private var end = clip.endPositionMs ?: clip.positionMs
-    private val resumeAt = actions.position()
-    private val wasPlaying = actions.isPlaying()
-    private var previewed = false
 
     private val ticker = object : Runnable {
         override fun run() {
-            binding.clipRange.playhead = actions.position().inWholeMilliseconds
-            val playing = previewed && actions.isPlaying()
+            binding.clipRange.playhead = actions.previewPosition().inWholeMilliseconds
+            val playing = actions.isPreviewPlaying()
             val icon = if (playing) R.drawable.ic_pause_black_42dp else R.drawable.ic_play_black_42dp
             binding.clipPlay.setImageResource(icon)
             val label = if (playing) R.string.clip_pause else R.string.clip_play
@@ -96,11 +93,12 @@ class AudiobookClipEditor(
 
         recenter()
         updateTimes()
+        actions.previewSeek(start.milliseconds)
         dialog.setContentView(root)
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         dialog.setOnDismissListener {
             handler.removeCallbacks(ticker)
-            if (previewed) actions.resume(resumeAt, wasPlaying)
+            actions.stopPreview()
         }
         dialog.show()
         handler.post(ticker)
@@ -126,18 +124,17 @@ class AudiobookClipEditor(
      * few seconds up to the new end.
      */
     private fun replayAfterChange(startMoved: Boolean) {
-        if (!previewed || !actions.isPlaying()) return
+        if (!actions.isPreviewPlaying()) return
         val from = if (startMoved) start else (end - END_PREVIEW_MS).coerceAtLeast(start)
         actions.playClip(from.milliseconds, end.milliseconds)
     }
 
     /** Moves playback to [position], carrying on to the clip's end if it is playing inside the clip. */
     private fun seekTo(position: Long) {
-        previewed = true
-        if (actions.isPlaying() && position in start until end) {
+        if (actions.isPreviewPlaying() && position in start until end) {
             actions.playClip(position.milliseconds, end.milliseconds)
         } else {
-            actions.seek(position.milliseconds)
+            actions.previewSeek(position.milliseconds)
         }
     }
 
@@ -178,13 +175,12 @@ class AudiobookClipEditor(
 
     /** Plays from the playhead when it sits inside the clip, otherwise from the clip's start. */
     private fun togglePreview() {
-        if (previewed && actions.isPlaying()) {
-            actions.pause()
+        if (actions.isPreviewPlaying()) {
+            actions.pausePreview()
             return
         }
-        val position = actions.position().inWholeMilliseconds
-        val from = if (previewed && position in start until end - MIN_LENGTH_MS) position else start
-        previewed = true
+        val position = actions.previewPosition().inWholeMilliseconds
+        val from = if (position in start until end - MIN_LENGTH_MS) position else start
         actions.playClip(from.milliseconds, end.milliseconds)
     }
 

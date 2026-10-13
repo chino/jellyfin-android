@@ -33,9 +33,13 @@ class AudiobookBookmarksHelper(
     private val binding: ExoPlayerControlViewBinding,
     private val audiobookDao: AudiobookDao,
     private val clipExporter: AudiobookClipExporter,
+    private val clipPlayback: AudiobookClipPlayback,
     private val scope: CoroutineScope,
     private val player: () -> ExoPlayer?,
-) : AudiobookBookmarksScreen.Actions, AudiobookClipControls by AudiobookClipPlayback(player) {
+) : AudiobookBookmarksScreen.Actions, AudiobookClipControls by clipPlayback {
+    private val bookPosition: Duration
+        get() = player()?.currentPosition?.milliseconds ?: Duration.ZERO
+
     private val context get() = binding.root.context
     private var itemId: UUID? = null
     private var title: String? = null
@@ -43,6 +47,11 @@ class AudiobookBookmarksHelper(
 
     init {
         binding.bookmarksButton.setOnClickListener { showMenu() }
+    }
+
+    /** Frees the clip preview player. */
+    fun release() {
+        clipPlayback.release()
     }
 
     fun onMediaSourceChanged(mediaSource: JellyfinMediaSource) {
@@ -57,7 +66,7 @@ class AudiobookBookmarksHelper(
         scope.launch {
             val bookmarkCount = audiobookDao.getBookmarks(id.toString()).size
             PopupMenu(context, binding.bookmarksButton).apply {
-                val position = position()
+                val position = bookPosition
                 val clipLabel = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
                 menu.add(Menu.NONE, ADD_CLIP, Menu.NONE, clipLabel)
                 menu.add(Menu.NONE, BOOKMARKS, Menu.NONE, context.getString(R.string.bookmarks_count, bookmarkCount))
@@ -88,7 +97,7 @@ class AudiobookBookmarksHelper(
 
     override fun addClip(onAdded: () -> Unit) {
         val id = itemId ?: return
-        newClip(id, position(), onAdded)
+        newClip(id, bookPosition, onAdded)
     }
 
     override fun shareClip(start: Duration, end: Duration) {

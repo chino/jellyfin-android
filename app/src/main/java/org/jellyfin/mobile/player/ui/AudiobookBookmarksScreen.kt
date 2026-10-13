@@ -71,6 +71,7 @@ class AudiobookBookmarksScreen(
         binding.bookmarksAdd.setOnClickListener { actions.addClip(onAdded = ::reload) }
         dialog.setContentView(binding.root)
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+        dialog.setOnDismissListener { actions.stopPreview() }
         dialog.show()
         reload()
     }
