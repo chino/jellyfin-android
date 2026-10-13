@@ -111,8 +111,7 @@
     <string name="clip_play">Clip</string>
     <string name="clip_share">Share</string>
     <string name="clip_share_unavailable">Download this book to share clips from it.</string>
-    <string name="clip_file_chapter">Chapter %1$d %2$s</string>
-    <string name="clip_file_chapter_unnamed">Chapter %1$d</string>
+    <string name="clip_file_chapter_number">Chapter %1$s</string>
     <string name="clip_saved">Clip saved</string>
     <string name="clip_saved_edit">Edit</string>
     <string name="clip_edit">Edit clip</string>
