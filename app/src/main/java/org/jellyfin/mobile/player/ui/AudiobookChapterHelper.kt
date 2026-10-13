@@ -98,12 +98,13 @@ class AudiobookChapterHelper(
      * Audiobooks show the play controls in a row below the seek bar, like other audiobook apps, so the cover
      * stays visible. Videos keep them in the middle of the screen.
      */
-    /** Slides an audiobook's cover up just enough to clear the controls, without going under the toolbar. */
+    /** Centers an audiobook's cover between the toolbar and the chapter row, never under the toolbar. */
     private fun fitArtwork() {
         val frame = contentFrame ?: return
-        val overlap = frame.bottom - binding.audiobookScrimFade.top
-        val room = frame.top - binding.toolbar.bottom
-        frame.translationY = if (isAudiobook) -minOf(overlap, room).coerceAtLeast(0).toFloat() else 0f
+        val spaceTop = binding.toolbar.bottom
+        val spaceCenter = (spaceTop + binding.audiobookChapterPanel.top) / 2
+        val shift = maxOf(spaceCenter - (frame.top + frame.bottom) / 2, spaceTop - frame.top)
+        frame.translationY = if (isAudiobook) shift.toFloat() else 0f
     }
 
     private fun placePlaybackControls(belowSeekBar: Boolean) {
