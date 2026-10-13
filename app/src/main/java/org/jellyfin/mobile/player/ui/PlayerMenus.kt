@@ -79,6 +79,7 @@ class PlayerMenus(
     private var subtitleCount = 0
     private var subtitlesEnabled = false
     private var isAudiobook = false
+    private val bottomBar = AudiobookBottomBar(playerControlsBinding)
     private var audiobookHasChapters = false
 
     private val trickplayHelper = TrickplayHelper(
@@ -180,6 +181,7 @@ class PlayerMenus(
         val videoStream = mediaSource.selectedVideoStream
 
         val audioStreams = mediaSource.audioStreams
+        bottomBar.update(isAudiobook, audioStreams.size)
         buildMenuItems(
             audioStreamsMenu.menu,
             AUDIO_MENU_GROUP,

@@ -19,6 +19,9 @@
     <color name="playback_timebar_unplayed">#333333</color>
 
     <!-- Skip Media Segment Button -->
+    <color name="clip_saved_background">#F0F7EF</color>
+    <color name="clip_saved_text">#101010</color>
+    <color name="clip_saved_check">#2E8B3E</color>
     <color name="skip_media_segment_background">#202124</color>
     <color name="skip_media_segment_text">#DDDDDD</color>
 </resources>

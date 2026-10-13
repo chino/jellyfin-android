@@ -9,6 +9,8 @@
     <dimen name="exo_center_icon_padding">12dp</dimen>
     <dimen name="exo_center_controls_distance">24dp</dimen>
     <dimen name="audiobook_controls_margin">12dp</dimen>
+    <dimen name="audiobook_bottom_controls_size">56dp</dimen>
+    <dimen name="audiobook_bottom_controls_padding">12dp</dimen>
     <dimen name="exo_bottom_controls_size">42dp</dimen>
     <dimen name="exo_bottom_controls_padding">8dp</dimen>
     <dimen name="exo_bottom_controls_margin">8dp</dimen>

@@ -37,6 +37,7 @@ class AudiobookBookmarksHelper(
     private val scope: CoroutineScope,
     private val player: () -> ExoPlayer?,
 ) : AudiobookBookmarksScreen.Actions, AudiobookClipControls by clipPlayback {
+    private val hideClipSaved = Runnable { binding.clipSavedBar.isVisible = false }
     private val bookPosition: Duration
         get() = player()?.currentPosition?.milliseconds ?: Duration.ZERO
 
@@ -73,7 +74,7 @@ class AudiobookBookmarksHelper(
                 menu.add(Menu.NONE, HISTORY, Menu.NONE, context.getString(R.string.listening_history))
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
-                        ADD_CLIP -> newClip(id, position) {}
+                        ADD_CLIP -> saveClip(id, position) { clip -> showClipSaved(clip) }
                         BOOKMARKS -> showBookmarks(id)
                         HISTORY -> showHistory(id)
                     }
@@ -97,7 +98,7 @@ class AudiobookBookmarksHelper(
 
     override fun addClip(onAdded: () -> Unit) {
         val id = itemId ?: return
-        newClip(id, bookPosition, onAdded)
+        saveClip(id, bookPosition) { onAdded() }
     }
 
     override fun shareClip(start: Duration, end: Duration) {
@@ -118,8 +119,8 @@ class AudiobookBookmarksHelper(
         }
     }
 
-    /** Opens the editor on a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to [position]. */
-    private fun newClip(itemId: UUID, position: Duration, onAdded: () -> Unit) {
+    /** Saves a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to [position] right away, like a bookmark. */
+    private fun saveClip(itemId: UUID, position: Duration, onSaved: (BookmarkEntity) -> Unit) {
         val start = (position - Constants.AUDIOBOOK_CLIP_SECONDS.seconds).coerceAtLeast(Duration.ZERO)
         val clip = BookmarkEntity(
             itemId = itemId.toString(),
@@ -127,7 +128,23 @@ class AudiobookBookmarksHelper(
             note = null,
             endPositionMs = position.inWholeMilliseconds,
         )
-        AudiobookClipEditor(context, audiobookDao, scope, book(itemId), this, clip).show(onAdded)
+        scope.launch {
+            val id = audiobookDao.insertBookmark(clip)
+            onSaved(clip.copy(id = id))
+        }
+    }
+
+    /** Shows "Clip saved" with an Edit button for a few seconds. */
+    private fun showClipSaved(clip: BookmarkEntity) {
+        val bar = binding.clipSavedBar
+        bar.removeCallbacks(hideClipSaved)
+        bar.isVisible = true
+        binding.clipSavedEdit.setOnClickListener {
+            bar.isVisible = false
+            val id = itemId ?: return@setOnClickListener
+            AudiobookClipEditor(context, audiobookDao, scope, book(id), this, clip).show {}
+        }
+        bar.postDelayed(hideClipSaved, CLIP_SAVED_MS)
     }
 
     private fun showHistory(itemId: UUID) {
@@ -164,5 +181,6 @@ class AudiobookBookmarksHelper(
         private const val BOOKMARKS = 3
         private const val HISTORY = 4
         private const val HISTORY_LIMIT = 50
+        private const val CLIP_SAVED_MS = 4000L
     }
 }

@@ -87,7 +87,6 @@
     <string name="external_player_invalid_play_method">Invalid play method.</string>
     <string name="external_player_not_supported_yet">Playback tracking not supported in selected external player yet. Contact developers to try to add support for it.</string>
     <string name="external_player_invalid_player">No valid external player selected. Playback tracking disabled.</string>
-    <string name="player_chapters">Chapters</string>
     <string name="sleep_timer">Sleep timer</string>
     <string name="bookmarks">Clips &amp; notes</string>
     <string name="bookmark_save">Save</string>
@@ -112,6 +111,8 @@
     <string name="clip_play">Clip</string>
     <string name="clip_share">Share</string>
     <string name="clip_share_unavailable">Download this book to share clips from it.</string>
+    <string name="clip_saved">Clip saved</string>
+    <string name="clip_saved_edit">Edit</string>
     <string name="clip_edit">Edit clip</string>
     <string name="clip_new">New clip</string>
     <string name="clip_start">Start</string>

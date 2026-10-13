@@ -43,7 +43,6 @@ class AudiobookChapterHelper(
     private var isSeeking = false
 
     init {
-        binding.chaptersButton.setOnClickListener { chapterMenu?.show() }
         binding.audiobookChapterTitle.setOnClickListener { chapterMenu?.show() }
         binding.sleepTimerButton.setOnClickListener { sleepTimerMenu.show() }
         binding.audiobookChapterSeekBar.setOnSeekBarChangeListener(
@@ -81,7 +80,6 @@ class AudiobookChapterHelper(
         binding.seekBarContainer.isVisible = !hasChapters
         binding.exoPosition.isVisible = !hasChapters
         binding.exoDuration.isVisible = !hasChapters
-        binding.chaptersButton.isVisible = hasChapters
         binding.sleepTimerButton.isVisible = mediaSource.isAudiobook
         placePlaybackControls(belowSeekBar = mediaSource.isAudiobook)
         chapterMenu = if (hasChapters) createChapterMenu() else null
@@ -218,7 +216,7 @@ class AudiobookChapterHelper(
         }
     }
 
-    private fun createChapterMenu() = PopupMenu(binding.root.context, binding.chaptersButton).apply {
+    private fun createChapterMenu() = PopupMenu(binding.root.context, binding.audiobookChapterTitle).apply {
         chapters.forEachIndexed { index, chapter ->
             val start = formatDuration(chapter.startPositionTicks.ticks)
             menu.add(Menu.NONE, index, index, "$start  ${chapterName(index)}")
