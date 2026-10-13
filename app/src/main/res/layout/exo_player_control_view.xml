@@ -7,6 +7,28 @@
     android:layout_height="match_parent"
     android:background="@color/playback_controls_background">
 
+    <!-- Audiobooks: a dark backdrop behind the controls, fading in above them, so text never sits on the cover -->
+    <View
+        android:id="@+id/audiobook_scrim_fade"
+        android:layout_width="0dp"
+        android:layout_height="48dp"
+        android:background="@drawable/audiobook_scrim_fade"
+        android:visibility="gone"
+        app:layout_constraintBottom_toTopOf="@id/audiobook_chapter_panel"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
+
+    <View
+        android:id="@+id/audiobook_scrim"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="@color/audiobook_scrim"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/audiobook_scrim_fade" />
+
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar"
         android:layout_width="0dp"

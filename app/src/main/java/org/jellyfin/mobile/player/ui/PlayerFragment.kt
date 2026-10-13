@@ -229,7 +229,11 @@ class PlayerFragment : Fragment(), BackPressInterceptor {
 
         // Create playback menus
         playerMenus = PlayerMenus(this, playerBinding, playerControlsBinding)
-        audiobookChapterHelper = AudiobookChapterHelper(playerControlsBinding, viewModel.sleepTimer) { position ->
+        audiobookChapterHelper = AudiobookChapterHelper(
+            playerControlsBinding,
+            viewModel.sleepTimer,
+            playerView.findViewById(Media3R.id.exo_artwork),
+        ) { position ->
             viewModel.playerOrNull?.seekTo(position.inWholeMilliseconds)
         }
         audiobookBookmarksHelper = AudiobookBookmarksHelper(

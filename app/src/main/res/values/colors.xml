@@ -19,6 +19,7 @@
     <color name="playback_timebar_unplayed">#333333</color>
 
     <!-- Skip Media Segment Button -->
+    <color name="audiobook_scrim">#F2101010</color>
     <color name="clip_saved_background">#F0F7EF</color>
     <color name="clip_saved_text">#101010</color>
     <color name="clip_saved_check">#2E8B3E</color>

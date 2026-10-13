@@ -4,6 +4,7 @@ import android.content.res.ColorStateList
 import android.graphics.Color
 import android.text.format.DateUtils
 import android.view.Menu
+import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.SeekBar
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -29,8 +30,10 @@ import kotlin.time.Duration.Companion.minutes
 class AudiobookChapterHelper(
     private val binding: ExoPlayerControlViewBinding,
     private val sleepTimer: SleepTimer,
+    private val artwork: ImageView?,
     private val onSeek: (Duration) -> Unit,
 ) {
+    private var isAudiobook = false
     private var chapters: List<ChapterInfo> = emptyList()
     private var runTime: Duration = Duration.ZERO
     private var chapterMenu: PopupMenu? = null
@@ -43,6 +46,7 @@ class AudiobookChapterHelper(
     private var isSeeking = false
 
     init {
+        binding.root.addOnLayoutChangeListener { _, _, _, _, _, _, _, _, _ -> fitArtwork() }
         binding.audiobookChapterTitle.setOnClickListener { chapterMenu?.show() }
         binding.sleepTimerButton.setOnClickListener { sleepTimerMenu.show() }
         binding.audiobookChapterSeekBar.setOnSeekBarChangeListener(
@@ -72,6 +76,10 @@ class AudiobookChapterHelper(
 
         val hasChapters = chapters.isNotEmpty()
         binding.audiobookChapterPanel.isVisible = mediaSource.isAudiobook
+        binding.audiobookScrim.isVisible = mediaSource.isAudiobook
+        binding.audiobookScrimFade.isVisible = mediaSource.isAudiobook
+        isAudiobook = mediaSource.isAudiobook
+        fitArtwork()
         binding.audiobookChapterTitle.isVisible = hasChapters
         binding.audiobookChapterSeekBar.isVisible = hasChapters
         binding.audiobookChapterElapsed.isVisible = hasChapters
@@ -90,6 +98,17 @@ class AudiobookChapterHelper(
      * Audiobooks show the play controls in a row below the seek bar, like other audiobook apps, so the cover
      * stays visible. Videos keep them in the middle of the screen.
      */
+    /** Fits an audiobook's cover into the space between the toolbar and the controls, so they don't cover it. */
+    private fun fitArtwork() {
+        val artwork = artwork ?: return
+        val top = if (isAudiobook) binding.toolbar.bottom else 0
+        val bottom = if (isAudiobook) (binding.root.height - binding.audiobookScrimFade.top).coerceAtLeast(0) else 0
+        if (artwork.paddingTop != top || artwork.paddingBottom != bottom) {
+            // Padding changes during a layout pass need a fresh one, so post it
+            artwork.post { artwork.setPadding(0, top, 0, bottom) }
+        }
+    }
+
     private fun placePlaybackControls(belowSeekBar: Boolean) {
         val unset = ConstraintLayout.LayoutParams.UNSET
         val parent = ConstraintLayout.LayoutParams.PARENT_ID
