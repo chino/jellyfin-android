@@ -13,8 +13,8 @@ import org.jellyfin.mobile.utils.Constants
  */
 @Database(
     entities = [BookmarkEntity::class, ListeningSessionEntity::class],
-    version = 3,
-    autoMigrations = [AutoMigration(from = 1, to = 2)],
+    version = 4,
+    autoMigrations = [AutoMigration(from = 1, to = 2), AutoMigration(from = 3, to = 4)],
 )
 abstract class AudiobookDatabase : RoomDatabase() {
     abstract val audiobookDao: AudiobookDao

@@ -1,11 +1,9 @@
 package org.jellyfin.mobile.player.ui
 
 import android.content.Intent
-import android.os.Looper
 import android.text.format.DateFormat
 import android.text.format.DateUtils
 import android.view.Menu
-import android.widget.EditText
 import android.widget.PopupMenu
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
@@ -37,14 +35,11 @@ class AudiobookBookmarksHelper(
     private val clipExporter: AudiobookClipExporter,
     private val scope: CoroutineScope,
     private val player: () -> ExoPlayer?,
-) : AudiobookBookmarksScreen.Actions {
+) : AudiobookBookmarksScreen.Actions, AudiobookClipControls by AudiobookClipPlayback(player) {
     private val context get() = binding.root.context
     private var itemId: UUID? = null
     private var title: String? = null
     private var chapters: List<ChapterInfo> = emptyList()
-
-    private val currentPosition: Duration
-        get() = player()?.currentPosition?.milliseconds ?: Duration.ZERO
 
     init {
         binding.bookmarksButton.setOnClickListener { showMenu() }
@@ -62,14 +57,14 @@ class AudiobookBookmarksHelper(
         scope.launch {
             val bookmarkCount = audiobookDao.getBookmarks(id.toString()).size
             PopupMenu(context, binding.bookmarksButton).apply {
-                val position = currentPosition
+                val position = position()
                 val clipLabel = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
                 menu.add(Menu.NONE, ADD_CLIP, Menu.NONE, clipLabel)
                 menu.add(Menu.NONE, BOOKMARKS, Menu.NONE, context.getString(R.string.bookmarks_count, bookmarkCount))
                 menu.add(Menu.NONE, HISTORY, Menu.NONE, context.getString(R.string.listening_history))
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
-                        ADD_CLIP -> askForNote(id, position) {}
+                        ADD_CLIP -> newClip(id, position) {}
                         BOOKMARKS -> showBookmarks(id)
                         HISTORY -> showHistory(id)
                     }
@@ -84,30 +79,16 @@ class AudiobookBookmarksHelper(
             context = context,
             audiobookDao = audiobookDao,
             scope = scope,
-            book = AudiobookBookmarksScreen.Book(itemId.toString(), title, chapters),
+            book = book(itemId),
             actions = this,
         ).show()
     }
 
+    private fun book(itemId: UUID) = AudiobookBookmarksScreen.Book(itemId.toString(), title, chapters)
+
     override fun addClip(onAdded: () -> Unit) {
         val id = itemId ?: return
-        askForNote(id, currentPosition, onAdded)
-    }
-
-    override fun seek(position: Duration) {
-        player()?.seekTo(position.inWholeMilliseconds)
-    }
-
-    override fun playClip(start: Duration, end: Duration) {
-        val player = player() ?: return
-        player.seekTo(start.inWholeMilliseconds)
-        player.play()
-        // Pause where the clip ends, unless the listener has moved elsewhere by then
-        player.createMessage { _, _ -> player.pause() }
-            .setLooper(Looper.getMainLooper())
-            .setPosition(end.inWholeMilliseconds)
-            .setDeleteAfterDelivery(true)
-            .send()
+        newClip(id, position(), onAdded)
     }
 
     override fun shareClip(start: Duration, end: Duration) {
@@ -128,29 +109,16 @@ class AudiobookBookmarksHelper(
         }
     }
 
-    /** Saves a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to [position], with an optional note. */
-    private fun askForNote(itemId: UUID, position: Duration, onAdded: () -> Unit) {
-        val input = EditText(context).apply { hint = context.getString(R.string.bookmark_note_hint) }
+    /** Opens the editor on a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to [position]. */
+    private fun newClip(itemId: UUID, position: Duration, onAdded: () -> Unit) {
         val start = (position - Constants.AUDIOBOOK_CLIP_SECONDS.seconds).coerceAtLeast(Duration.ZERO)
-        AlertDialog.Builder(context)
-            .setTitle(context.getString(R.string.clip_add_range, format(start), format(position)))
-            .setView(input)
-            .setPositiveButton(R.string.bookmark_save) { _, _ ->
-                val note = input.text.toString().trim().ifEmpty { null }
-                scope.launch {
-                    audiobookDao.insertBookmark(
-                        BookmarkEntity(
-                            itemId = itemId.toString(),
-                            positionMs = start.inWholeMilliseconds,
-                            note = note,
-                            endPositionMs = position.inWholeMilliseconds,
-                        ),
-                    )
-                    onAdded()
-                }
-            }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        val clip = BookmarkEntity(
+            itemId = itemId.toString(),
+            positionMs = start.inWholeMilliseconds,
+            note = null,
+            endPositionMs = position.inWholeMilliseconds,
+        )
+        AudiobookClipEditor(context, audiobookDao, scope, book(itemId), this, clip).show(onAdded)
     }
 
     private fun showHistory(itemId: UUID) {

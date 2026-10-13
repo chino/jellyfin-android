@@ -3,6 +3,7 @@ package org.jellyfin.mobile.data.audiobook
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import androidx.room.Update
 
 @Dao
 interface AudiobookDao {
@@ -12,11 +13,8 @@ interface AudiobookDao {
     @Insert
     suspend fun insertBookmark(bookmark: BookmarkEntity): Long
 
-    @Query("UPDATE bookmark SET note = :note WHERE id = :id")
-    suspend fun updateBookmarkNote(id: Long, note: String?)
-
-    @Query("UPDATE bookmark SET position_ms = :startMs WHERE id = :id")
-    suspend fun updateClipStart(id: Long, startMs: Long)
+    @Update
+    suspend fun updateBookmark(bookmark: BookmarkEntity)
 
     @Query("DELETE FROM bookmark WHERE id = :id")
     suspend fun deleteBookmark(id: Long)

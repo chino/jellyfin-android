@@ -1,0 +1,211 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/theme_background"
+    android:fitsSystemWindows="true"
+    android:orientation="vertical">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingHorizontal="4dp">
+
+        <androidx.appcompat.widget.AppCompatImageButton
+            android:id="@+id/clip_close"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/ripple_background_circular"
+            android:contentDescription="@string/bookmarks_close"
+            android:src="@drawable/ic_close" />
+
+        <TextView
+            android:id="@+id/clip_title"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_weight="1"
+            android:textAppearance="@style/TextAppearance.AppCompat.Title"
+            tools:text="@string/clip_edit" />
+
+        <TextView
+            android:id="@+id/clip_save"
+            android:layout_width="wrap_content"
+            android:layout_height="48dp"
+            android:background="?attr/selectableItemBackground"
+            android:gravity="center"
+            android:paddingHorizontal="16dp"
+            android:text="@string/bookmark_save"
+            android:textColor="?android:textColorPrimary"
+            android:textSize="17sp"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="24dp">
+
+            <TextView
+                android:id="@+id/clip_chapter"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="20sp"
+                android:textStyle="bold"
+                tools:text="Chapter 4 of 77 · Opening Credits" />
+
+            <TextView
+                android:id="@+id/clip_book"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="16sp"
+                tools:text="All These Worlds" />
+
+            <org.jellyfin.mobile.player.ui.ClipRangeView
+                android:id="@+id/clip_range"
+                android:layout_width="match_parent"
+                android:layout_height="160dp"
+                android:layout_marginTop="16dp" />
+
+            <TextView
+                android:id="@+id/clip_times"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:fontFeatureSettings="tnum"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold"
+                tools:text="00:10 – 00:36 in chapter · 1:23:45 in book" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/clip_start"
+                    android:textColor="?android:textColorSecondary" />
+
+                <TextView
+                    android:id="@+id/clip_start_earlier"
+                    style="@style/ClipNudgeButton"
+                    android:text="@string/clip_nudge_earlier" />
+
+                <TextView
+                    android:id="@+id/clip_start_later"
+                    style="@style/ClipNudgeButton"
+                    android:text="@string/clip_nudge_later" />
+
+                <Space
+                    android:layout_width="0dp"
+                    android:layout_height="0dp"
+                    android:layout_weight="1" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/clip_end"
+                    android:textColor="?android:textColorSecondary" />
+
+                <TextView
+                    android:id="@+id/clip_end_earlier"
+                    style="@style/ClipNudgeButton"
+                    android:text="@string/clip_nudge_earlier" />
+
+                <TextView
+                    android:id="@+id/clip_end_later"
+                    style="@style/ClipNudgeButton"
+                    android:text="@string/clip_nudge_later" />
+            </LinearLayout>
+
+            <androidx.appcompat.widget.AppCompatImageButton
+                android:id="@+id/clip_play"
+                android:layout_width="72dp"
+                android:layout_height="72dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="20dp"
+                android:background="@drawable/audiobook_play_background"
+                android:contentDescription="@string/clip_play"
+                android:src="@drawable/ic_play_black_42dp"
+                android:tint="@color/theme_background" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/clip_name_label"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/clip_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:hint="@string/clip_name_hint"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences"
+                android:maxLength="32"
+                android:maxLines="1" />
+
+            <TextView
+                android:id="@+id/clip_name_count"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="end"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="12sp"
+                tools:text="0/32" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="@string/clip_note_label"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <EditText
+                android:id="@+id/clip_note"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="top"
+                android:hint="@string/clip_note_hint"
+                android:importantForAutofill="no"
+                android:inputType="textCapSentences|textMultiLine"
+                android:minLines="3" />
+
+            <TextView
+                android:id="@+id/clip_delete"
+                android:layout_width="wrap_content"
+                android:layout_height="48dp"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="24dp"
+                android:background="?attr/selectableItemBackground"
+                android:gravity="center"
+                android:paddingHorizontal="16dp"
+                android:text="@string/clip_delete"
+                android:textColor="?android:textColorPrimary"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
