@@ -129,7 +129,8 @@
     <string name="listening_history">Listening history</string>
     <string name="listening_history_close">Close</string>
     <string name="listening_history_empty">Nothing listened to yet.</string>
-    <string name="listening_session">%1$s · %2$s → %3$s</string>
+    <string name="listening_session_times">%1$s → %2$s in book</string>
+    <string name="listening_session_chapter_times">Stopped %1$s into the chapter · %2$s → %3$s in book</string>
     <string name="sleep_timer_off">Off</string>
     <string name="sleep_timer_minutes">%1$d minutes</string>
     <string name="sleep_timer_end_of_chapter">End of chapter</string>

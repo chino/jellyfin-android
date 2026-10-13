@@ -48,6 +48,12 @@ class AudiobookBookmarksHelper(
 
     init {
         binding.bookmarksButton.setOnClickListener { showMenu() }
+        binding.clipSavedBar.setOnTouchListener(
+            SwipeDismissTouchListener { bar ->
+                bar.removeCallbacks(hideClipSaved)
+                bar.isVisible = false
+            },
+        )
     }
 
     /** Frees the clip preview player. */
@@ -166,12 +172,25 @@ class AudiobookBookmarksHelper(
         val date = Date(session.startedAt)
         val whenText = "${DateFormat.getMediumDateFormat(context).format(date)} " +
             DateFormat.getTimeFormat(context).format(date)
-        return context.getString(
-            R.string.listening_session,
-            whenText,
-            format(session.startPositionMs.milliseconds),
-            format(session.endPositionMs.milliseconds),
-        )
+        val end = session.endPositionMs.milliseconds
+        val book = itemId?.let(::book)
+        val chapter = book?.chapterLabel(context, end)
+        val chapterStart = book?.chapterStart(end)
+        val times = if (chapterStart != null) {
+            context.getString(
+                R.string.listening_session_chapter_times,
+                format(end - chapterStart),
+                format(session.startPositionMs.milliseconds),
+                format(end),
+            )
+        } else {
+            context.getString(
+                R.string.listening_session_times,
+                format(session.startPositionMs.milliseconds),
+                format(end),
+            )
+        }
+        return listOfNotNull(whenText, chapter, times).joinToString("\n")
     }
 
     private fun format(duration: Duration): String = DateUtils.formatElapsedTime(duration.inWholeSeconds)
