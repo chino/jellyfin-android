@@ -3,10 +3,12 @@ package org.jellyfin.mobile.player.ui
 import android.content.Intent
 import android.text.format.DateFormat
 import android.text.format.DateUtils
-import android.view.Menu
-import android.widget.PopupMenu
+import android.view.Gravity
+import android.view.LayoutInflater
+import android.view.ViewGroup
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatDialog
 import androidx.core.view.isVisible
 import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
@@ -15,6 +17,7 @@ import org.jellyfin.mobile.R
 import org.jellyfin.mobile.data.audiobook.AudiobookDao
 import org.jellyfin.mobile.data.audiobook.BookmarkEntity
 import org.jellyfin.mobile.data.audiobook.ListeningSessionEntity
+import org.jellyfin.mobile.databinding.DialogAudiobookClipMenuBinding
 import org.jellyfin.mobile.databinding.ExoPlayerControlViewBinding
 import org.jellyfin.mobile.player.AudiobookClipExporter
 import org.jellyfin.mobile.player.source.JellyfinMediaSource
@@ -69,25 +72,34 @@ class AudiobookBookmarksHelper(
         binding.bookmarksButton.isVisible = mediaSource.isAudiobook
     }
 
+    /** A sheet of big, easy-to-press choices that slides up from the bottom. */
     private fun showMenu() {
         val id = itemId ?: return
+        val position = bookPosition
         scope.launch {
-            val bookmarkCount = audiobookDao.getBookmarks(id.toString()).size
-            PopupMenu(context, binding.bookmarksButton).apply {
-                val position = bookPosition
-                val clipLabel = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
-                menu.add(Menu.NONE, ADD_CLIP, Menu.NONE, clipLabel)
-                menu.add(Menu.NONE, BOOKMARKS, Menu.NONE, context.getString(R.string.bookmarks_count, bookmarkCount))
-                menu.add(Menu.NONE, HISTORY, Menu.NONE, context.getString(R.string.listening_history))
-                setOnMenuItemClickListener { item ->
-                    when (item.itemId) {
-                        ADD_CLIP -> saveClip(id, position) { clip -> showClipSaved(clip) }
-                        BOOKMARKS -> showBookmarks(id)
-                        HISTORY -> showHistory(id)
-                    }
-                    true
-                }
-            }.show()
+            val clipCount = audiobookDao.getBookmarks(id.toString()).size
+            val dialog = AppCompatDialog(context, R.style.AppTheme_BottomMenu)
+            val menu = DialogAudiobookClipMenuBinding.inflate(LayoutInflater.from(context))
+            menu.menuAddClip.text = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
+            menu.menuClips.text = context.getString(R.string.bookmarks_count, clipCount)
+            menu.menuAddClip.setOnClickListener {
+                dialog.dismiss()
+                saveClip(id, position) { clip -> showClipSaved(clip) }
+            }
+            menu.menuClips.setOnClickListener {
+                dialog.dismiss()
+                showBookmarks(id)
+            }
+            menu.menuHistory.setOnClickListener {
+                dialog.dismiss()
+                showHistory(id)
+            }
+            dialog.setContentView(menu.root)
+            dialog.window?.apply {
+                setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                setGravity(Gravity.BOTTOM)
+            }
+            dialog.show()
         }
     }
 
@@ -215,9 +227,6 @@ class AudiobookBookmarksHelper(
     private fun format(duration: Duration): String = DateUtils.formatElapsedTime(duration.inWholeSeconds)
 
     companion object {
-        private const val ADD_CLIP = 2
-        private const val BOOKMARKS = 3
-        private const val HISTORY = 4
         private const val HISTORY_LIMIT = 50
         private const val CLIP_SAVED_MS = 4000L
     }

@@ -137,15 +137,16 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?selectableItemBackground"
-            android:drawableEnd="@drawable/ic_playlist"
-            android:drawablePadding="8dp"
+            android:drawableStart="@drawable/ic_playlist"
+            android:drawablePadding="12dp"
             android:drawableTint="?android:textColorPrimary"
             android:ellipsize="end"
             android:gravity="center_vertical"
             android:maxLines="1"
-            android:paddingVertical="4dp"
+            android:minHeight="56dp"
+            android:paddingVertical="8dp"
             android:textColor="?android:textColorPrimary"
-            android:textSize="16sp"
+            android:textSize="20sp"
             android:textStyle="bold"
             tools:text="3/21 · Chapter Three" />
 
@@ -153,7 +154,7 @@
             android:id="@+id/audiobook_chapter_seek_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="16dp"
             android:max="1000"
             android:progressBackgroundTint="@color/playback_timebar_unplayed"
             android:progressTint="?colorAccent"
@@ -172,7 +173,7 @@
                 android:layout_height="wrap_content"
                 android:fontFeatureSettings="tnum"
                 android:textColor="?android:textColorPrimary"
-                android:textSize="13sp"
+                android:textSize="18sp"
                 tools:text="08:17" />
 
             <androidx.appcompat.widget.AppCompatTextView
@@ -182,7 +183,7 @@
                 android:layout_weight="1"
                 android:gravity="center"
                 android:textColor="?android:textColorSecondary"
-                android:textSize="13sp"
+                android:textSize="18sp"
                 tools:text="7h 43m left" />
 
             <androidx.appcompat.widget.AppCompatTextView
@@ -191,7 +192,7 @@
                 android:layout_height="wrap_content"
                 android:fontFeatureSettings="tnum"
                 android:textColor="?android:textColorPrimary"
-                android:textSize="13sp"
+                android:textSize="18sp"
                 tools:text="−03:47" />
         </LinearLayout>
 
@@ -201,7 +202,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="2dp"
             android:textColor="?colorAccent"
-            android:textSize="13sp"
+            android:textSize="16sp"
             android:visibility="gone"
             tools:text="Sleep in 14:59"
             tools:visibility="visible" />
