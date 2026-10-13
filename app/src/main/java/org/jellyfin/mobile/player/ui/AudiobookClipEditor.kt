@@ -69,11 +69,21 @@ class AudiobookClipEditor(
         clipName.doAfterTextChanged { updateNameCount() }
         clipDelete.isVisible = !isNew
 
-        clipRange.listener = ClipRangeView.Listener { newStart, newEnd, finished ->
-            start = newStart
-            end = newEnd
-            updateTimes()
-            if (finished) recenterIfNearEdge()
+        clipRange.listener = object : ClipRangeView.Listener {
+            override fun onRangeChanged(start: Long, end: Long, finished: Boolean) {
+                val startMoved = start != this@AudiobookClipEditor.start
+                this@AudiobookClipEditor.start = start
+                this@AudiobookClipEditor.end = end
+                updateTimes()
+                if (finished) {
+                    recenterIfNearEdge()
+                    replayAfterChange(startMoved)
+                }
+            }
+
+            override fun onSeek(position: Long, finished: Boolean) {
+                if (finished) seekTo(position)
+            }
         }
         clipStartEarlier.setOnClickListener { setRange(start - NUDGE_MS, end) }
         clipStartLater.setOnClickListener { setRange(start + NUDGE_MS, end) }
@@ -97,6 +107,7 @@ class AudiobookClipEditor(
     }
 
     private fun setRange(newStart: Long, newEnd: Long) {
+        val oldStart = start
         start = newStart.coerceIn(0L, end - MIN_LENGTH_MS)
         end = newEnd.coerceIn(start + MIN_LENGTH_MS, bookLength.coerceAtLeast(start + MIN_LENGTH_MS))
         val range = binding.clipRange
@@ -107,6 +118,27 @@ class AudiobookClipEditor(
             recenterIfNearEdge()
         }
         updateTimes()
+        replayAfterChange(startMoved = start != oldStart)
+    }
+
+    /**
+     * While the clip is playing, lets the listener hear an edit right away: from the new start, or the last
+     * few seconds up to the new end.
+     */
+    private fun replayAfterChange(startMoved: Boolean) {
+        if (!previewed || !actions.isPlaying()) return
+        val from = if (startMoved) start else (end - END_PREVIEW_MS).coerceAtLeast(start)
+        actions.playClip(from.milliseconds, end.milliseconds)
+    }
+
+    /** Moves playback to [position], carrying on to the clip's end if it is playing inside the clip. */
+    private fun seekTo(position: Long) {
+        previewed = true
+        if (actions.isPlaying() && position in start until end) {
+            actions.playClip(position.milliseconds, end.milliseconds)
+        } else {
+            actions.seek(position.milliseconds)
+        }
     }
 
     /** Shows [CONTEXT_MS] either side of the clip, so a handle can be dragged that far. */
@@ -144,13 +176,16 @@ class AudiobookClipEditor(
         binding.clipNameCount.text = context.getString(R.string.clip_name_count, binding.clipName.length(), NAME_LENGTH)
     }
 
+    /** Plays from the playhead when it sits inside the clip, otherwise from the clip's start. */
     private fun togglePreview() {
         if (previewed && actions.isPlaying()) {
             actions.pause()
-        } else {
-            previewed = true
-            actions.playClip(start.milliseconds, end.milliseconds)
+            return
         }
+        val position = actions.position().inWholeMilliseconds
+        val from = if (previewed && position in start until end - MIN_LENGTH_MS) position else start
+        previewed = true
+        actions.playClip(from.milliseconds, end.milliseconds)
     }
 
     private fun save() {
@@ -186,6 +221,7 @@ class AudiobookClipEditor(
         const val MIN_LENGTH_MS = 1000L
         const val CONTEXT_MS = 60_000L
         const val EDGE_MS = 10_000L
+        const val END_PREVIEW_MS = 3000L
         const val NAME_LENGTH = 32
     }
 }

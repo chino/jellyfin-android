@@ -22,9 +22,10 @@ class ClipRangeView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
-    /** Called while a handle is dragged, and with [finished] set once it is let go. */
-    fun interface Listener {
+    /** Called while a handle or the playhead is dragged, and with [finished] set once it is let go. */
+    interface Listener {
         fun onRangeChanged(start: Long, end: Long, finished: Boolean)
+        fun onSeek(position: Long, finished: Boolean)
     }
 
     var listener: Listener? = null
@@ -38,10 +39,10 @@ class ClipRangeView @JvmOverloads constructor(
     var end = 1L
         private set
 
-    /** Where playback is, or a negative value to hide the playhead. */
+    /** Where playback is, or a negative value to hide the playhead. Ignored while the playhead is dragged. */
     var playhead = -1L
         set(value) {
-            if (field != value) {
+            if (field != value && dragging != Drag.PLAYHEAD) {
                 field = value
                 invalidate()
             }
@@ -171,7 +172,7 @@ class ClipRangeView @JvmOverloads constructor(
                 dragging = when {
                     startDistance <= endDistance && startDistance < reach -> Drag.START
                     endDistance < reach -> Drag.END
-                    else -> return false
+                    else -> Drag.PLAYHEAD
                 }
                 dragOffset = (if (dragging == Drag.START) start else end) - positionOf(event.x)
                 parent?.requestDisallowInterceptTouchEvent(true)
@@ -186,19 +187,28 @@ class ClipRangeView @JvmOverloads constructor(
     }
 
     private fun moveHandle(x: Float, finished: Boolean) {
+        if (dragging == Drag.PLAYHEAD) {
+            val position = positionOf(x).coerceIn(windowStart, windowEnd)
+            // Set the field directly: the setter ignores outside updates during this drag
+            dragging = Drag.NONE
+            playhead = position
+            dragging = Drag.PLAYHEAD
+            listener?.onSeek(position, finished)
+            return
+        }
         val position = positionOf(x) + dragOffset
         // Snap to whole seconds, which is as precise as the times shown
         val snapped = (position.toDouble() / MILLIS_PER_SECOND).roundToLong() * MILLIS_PER_SECOND
         when (dragging) {
             Drag.START -> start = snapped.coerceIn(windowStart, end - MIN_LENGTH_MS)
             Drag.END -> end = snapped.coerceIn(start + MIN_LENGTH_MS, windowEnd)
-            Drag.NONE -> return
+            Drag.NONE, Drag.PLAYHEAD -> return
         }
         invalidate()
         listener?.onRangeChanged(start, end, finished)
     }
 
-    private enum class Drag { NONE, START, END }
+    private enum class Drag { NONE, START, END, PLAYHEAD }
 
     private companion object {
         const val MILLIS_PER_SECOND = 1000L
