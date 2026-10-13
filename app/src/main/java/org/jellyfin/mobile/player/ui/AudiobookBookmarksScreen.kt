@@ -18,7 +18,6 @@ import org.jellyfin.mobile.data.audiobook.AudiobookDao
 import org.jellyfin.mobile.data.audiobook.BookmarkEntity
 import org.jellyfin.mobile.databinding.DialogAudiobookBookmarksBinding
 import org.jellyfin.mobile.databinding.ItemAudiobookBookmarkBinding
-import org.jellyfin.mobile.utils.Constants
 import org.jellyfin.sdk.model.api.ChapterInfo
 import org.jellyfin.sdk.model.extensions.ticks
 import java.util.Date
@@ -27,8 +26,9 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Full-screen, scrollable list of an audiobook's bookmarks. Each one shows when it was made, its chapter,
- * the time in the chapter and in the book, and its note, with buttons to play from it, edit it or delete it.
+ * Full-screen, scrollable list of an audiobook's clips and notes, like Audible's. Each clip shows when it was
+ * made, its chapter, its range in the chapter and in the book, and its note, with buttons to play it, share it,
+ * play on from it, edit it or delete it.
  */
 class AudiobookBookmarksScreen(
     private val context: Context,
@@ -39,13 +39,13 @@ class AudiobookBookmarksScreen(
 ) {
     /** What the list's buttons do, provided by the player. */
     interface Actions {
-        fun addBookmark(clip: Boolean, onAdded: () -> Unit)
+        fun addClip(onAdded: () -> Unit)
         fun seek(position: Duration)
         fun playClip(start: Duration, end: Duration)
         fun shareClip(start: Duration, end: Duration)
     }
 
-    /** The audiobook the bookmarks belong to, with its [chapters] sorted by start position. */
+    /** The audiobook the clips belong to, with its [chapters] sorted by start position. */
     class Book(val itemId: String, val title: String?, val chapters: List<ChapterInfo>)
 
     private val dialog = AppCompatDialog(context, R.style.AppTheme_FullScreenDialog)
@@ -56,7 +56,7 @@ class AudiobookBookmarksScreen(
         binding.bookmarksTitle.text = book.title ?: context.getString(R.string.bookmarks)
         binding.bookmarksClose.setOnClickListener { dialog.dismiss() }
         binding.bookmarksSort.setOnClickListener { showSortMenu() }
-        binding.bookmarksAdd.setOnClickListener { showAddMenu() }
+        binding.bookmarksAdd.setOnClickListener { actions.addClip(onAdded = ::reload) }
         dialog.setContentView(binding.root)
         dialog.window?.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
         dialog.show()
@@ -92,25 +92,20 @@ class AudiobookBookmarksScreen(
             DateFormat.getMediumDateFormat(context).format(created),
             DateFormat.getTimeFormat(context).format(created),
         )
-        val end = bookmark.endPositionMs?.milliseconds
+        val end = bookmark.endPositionMs?.milliseconds ?: position
         val index = book.chapters.indexOfLast { it.startPositionTicks.ticks <= position }
         val chapterStart = book.chapters.getOrNull(index)?.startPositionTicks?.ticks
         bookmarkChapter.text = if (chapterStart != null) chapterLabel(index) else null
         bookmarkChapter.isVisible = chapterStart != null
-        bookmarkTimes.text = when {
-            chapterStart != null && end != null -> context.getString(
+        bookmarkTimes.text = if (chapterStart != null) {
+            context.getString(
                 R.string.clip_times,
                 format(position - chapterStart),
                 format(end - chapterStart),
                 format(position),
             )
-            chapterStart != null -> context.getString(
-                R.string.bookmark_times,
-                format(position - chapterStart),
-                format(position),
-            )
-            end != null -> context.getString(R.string.clip_times_book, format(position), format(end))
-            else -> context.getString(R.string.bookmark_time_in_book, format(position))
+        } else {
+            context.getString(R.string.clip_times_book, format(position), format(end))
         }
         bookmarkNote.text = bookmark.note
         bookmarkNote.isVisible = bookmark.note != null
@@ -118,39 +113,23 @@ class AudiobookBookmarksScreen(
             actions.seek(position)
             dialog.dismiss()
         }
-        bookmarkClipPlay.isVisible = end != null
-        bookmarkShare.isVisible = end != null
-        if (end != null) {
-            bookmarkClipPlay.setOnClickListener { actions.playClip(position, end) }
-            bookmarkShare.setOnClickListener { actions.shareClip(position, end) }
-        }
+        bookmarkClipPlay.setOnClickListener { actions.playClip(position, end) }
+        bookmarkShare.setOnClickListener { actions.shareClip(position, end) }
         bookmarkMore.setOnClickListener {
             PopupMenu(context, bookmarkMore).apply {
                 menu.add(Menu.NONE, EDIT_NOTE, Menu.NONE, R.string.bookmark_edit_note)
-                if (end != null) menu.add(Menu.NONE, CLIP_LENGTH, Menu.NONE, R.string.clip_length)
+                menu.add(Menu.NONE, CLIP_LENGTH, Menu.NONE, R.string.clip_length)
                 menu.add(Menu.NONE, DELETE, Menu.NONE, R.string.bookmark_delete_one)
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
                         EDIT_NOTE -> editNote(bookmark)
-                        CLIP_LENGTH -> end?.let { chooseClipLength(bookmark, it) }
+                        CLIP_LENGTH -> chooseClipLength(bookmark, end)
                         else -> confirmDelete(bookmark)
                     }
                     true
                 }
             }.show()
         }
-    }
-
-    private fun showAddMenu() {
-        PopupMenu(context, binding.bookmarksAdd).apply {
-            menu.add(Menu.NONE, ADD_BOOKMARK, Menu.NONE, R.string.bookmark_add_menu_bookmark)
-            val clipLabel = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
-            menu.add(Menu.NONE, ADD_CLIP, Menu.NONE, clipLabel)
-            setOnMenuItemClickListener { item ->
-                actions.addBookmark(clip = item.itemId == ADD_CLIP, onAdded = ::reload)
-                true
-            }
-        }.show()
     }
 
     /** Changes how much a clip covers, keeping where it ends. */
@@ -238,8 +217,6 @@ class AudiobookBookmarksScreen(
         const val EDIT_NOTE = 1
         const val DELETE = 2
         const val CLIP_LENGTH = 3
-        const val ADD_BOOKMARK = 1
-        const val ADD_CLIP = 2
         val CLIP_LENGTHS = listOf(15, 30, 45, 60, 90, 120)
         const val SORT_GROUP = 1
 

@@ -16,7 +16,9 @@ val databaseModule = module {
     single { get<JellyfinDatabase>().userDao }
     single { get<JellyfinDatabase>().downloadDao }
     single {
-        Room.databaseBuilder(androidApplication(), AudiobookDatabase::class.java, "audiobooks").build()
+        Room.databaseBuilder(androidApplication(), AudiobookDatabase::class.java, "audiobooks")
+            .addMigrations(AudiobookDatabase.MIGRATION_2_3)
+            .build()
     }
     single { get<AudiobookDatabase>().audiobookDao }
 }

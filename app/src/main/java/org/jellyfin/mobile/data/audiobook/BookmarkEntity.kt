@@ -7,7 +7,8 @@ import androidx.room.PrimaryKey
 import java.util.UUID
 
 /**
- * A saved position in an audiobook. [uuid] identifies the bookmark across devices so it can be synced later.
+ * A clip of an audiobook, from [positionMs] to [endPositionMs], with an optional note. [uuid] identifies it
+ * across devices so it can be synced later.
  */
 @Entity(tableName = "bookmark", indices = [Index("item_id"), Index(value = ["uuid"], unique = true)])
 data class BookmarkEntity(
@@ -16,7 +17,7 @@ data class BookmarkEntity(
     @ColumnInfo(name = "item_id") val itemId: String,
     @ColumnInfo(name = "position_ms") val positionMs: Long,
     @ColumnInfo(name = "note") val note: String?,
-    /** Set for a clip: the bookmark covers [positionMs] up to here instead of a single point. */
+    /** Where the clip ends. Only empty for bookmarks made before clips, which the 2 to 3 migration fills in. */
     @ColumnInfo(name = "end_position_ms") val endPositionMs: Long? = null,
     @ColumnInfo(name = "created_at") val createdAt: Long = System.currentTimeMillis(),
 )

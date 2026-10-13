@@ -29,7 +29,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 /**
- * Bookmarks, clips and listening history for the audiobook being played, reached from one button.
+ * Clips (with notes) and listening history for the audiobook being played, reached from one button.
  */
 class AudiobookBookmarksHelper(
     private val binding: ExoPlayerControlViewBinding,
@@ -63,15 +63,13 @@ class AudiobookBookmarksHelper(
             val bookmarkCount = audiobookDao.getBookmarks(id.toString()).size
             PopupMenu(context, binding.bookmarksButton).apply {
                 val position = currentPosition
-                menu.add(Menu.NONE, ADD_BOOKMARK, Menu.NONE, context.getString(R.string.bookmark_add, format(position)))
                 val clipLabel = context.getString(R.string.clip_add, Constants.AUDIOBOOK_CLIP_SECONDS)
                 menu.add(Menu.NONE, ADD_CLIP, Menu.NONE, clipLabel)
                 menu.add(Menu.NONE, BOOKMARKS, Menu.NONE, context.getString(R.string.bookmarks_count, bookmarkCount))
                 menu.add(Menu.NONE, HISTORY, Menu.NONE, context.getString(R.string.listening_history))
                 setOnMenuItemClickListener { item ->
                     when (item.itemId) {
-                        ADD_BOOKMARK -> askForNote(id, position, clip = false) {}
-                        ADD_CLIP -> askForNote(id, position, clip = true) {}
+                        ADD_CLIP -> askForNote(id, position) {}
                         BOOKMARKS -> showBookmarks(id)
                         HISTORY -> showHistory(id)
                     }
@@ -91,9 +89,9 @@ class AudiobookBookmarksHelper(
         ).show()
     }
 
-    override fun addBookmark(clip: Boolean, onAdded: () -> Unit) {
+    override fun addClip(onAdded: () -> Unit) {
         val id = itemId ?: return
-        askForNote(id, currentPosition, clip, onAdded)
+        askForNote(id, currentPosition, onAdded)
     }
 
     override fun seek(position: Duration) {
@@ -130,18 +128,12 @@ class AudiobookBookmarksHelper(
         }
     }
 
-    /** Saves a bookmark at [position], or a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to it. */
-    private fun askForNote(itemId: UUID, position: Duration, clip: Boolean, onAdded: () -> Unit) {
+    /** Saves a clip of the [Constants.AUDIOBOOK_CLIP_SECONDS] leading up to [position], with an optional note. */
+    private fun askForNote(itemId: UUID, position: Duration, onAdded: () -> Unit) {
         val input = EditText(context).apply { hint = context.getString(R.string.bookmark_note_hint) }
-        val clipStart = (position - Constants.AUDIOBOOK_CLIP_SECONDS.seconds).coerceAtLeast(Duration.ZERO)
-        val start = if (clip) clipStart else position
-        val titleText = if (clip) {
-            context.getString(R.string.clip_add_range, format(start), format(position))
-        } else {
-            context.getString(R.string.bookmark_add, format(position))
-        }
+        val start = (position - Constants.AUDIOBOOK_CLIP_SECONDS.seconds).coerceAtLeast(Duration.ZERO)
         AlertDialog.Builder(context)
-            .setTitle(titleText)
+            .setTitle(context.getString(R.string.clip_add_range, format(start), format(position)))
             .setView(input)
             .setPositiveButton(R.string.bookmark_save) { _, _ ->
                 val note = input.text.toString().trim().ifEmpty { null }
@@ -151,7 +143,7 @@ class AudiobookBookmarksHelper(
                             itemId = itemId.toString(),
                             positionMs = start.inWholeMilliseconds,
                             note = note,
-                            endPositionMs = position.inWholeMilliseconds.takeIf { clip },
+                            endPositionMs = position.inWholeMilliseconds,
                         ),
                     )
                     onAdded()
@@ -191,7 +183,6 @@ class AudiobookBookmarksHelper(
     private fun format(duration: Duration): String = DateUtils.formatElapsedTime(duration.inWholeSeconds)
 
     companion object {
-        private const val ADD_BOOKMARK = 1
         private const val ADD_CLIP = 2
         private const val BOOKMARKS = 3
         private const val HISTORY = 4
